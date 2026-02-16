@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Config;
@@ -9,7 +11,13 @@ use Tests\TestCase;
 
 uses(TestCase::class);
 
-beforeEach(function (): void {
+class TestModel extends Model
+{
+    protected $table = 'test_table';
+}
+
+function createTestTable(): void
+{
     Schema::create('users', function (Blueprint $table): void {
         $table->id();
     });
@@ -21,14 +29,11 @@ beforeEach(function (): void {
         $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
         $table->timestamps();
     });
-});
-
-class TestModel extends Model
-{
-    protected $table = 'test_table';
 }
 
 test('it can inspect a table', function (): void {
+    createTestTable();
+
     $service = new SchemaInspectorService;
     $result = $service->inspect(TestModel::class);
 
