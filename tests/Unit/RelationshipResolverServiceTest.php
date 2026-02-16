@@ -1,6 +1,9 @@
 <?php
 
 use Matakltm\LaravelModelGraph\Services\RelationshipResolverService;
+use Tests\TestCase;
+
+uses(TestCase::class);
 
 test('it can be instantiated', function (): void {
     $service = new RelationshipResolverService;

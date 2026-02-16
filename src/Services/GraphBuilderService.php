@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Matakltm\LaravelModelGraph\Services;
 
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Config;
+
 /**
  * Class GraphBuilderService
  *
@@ -12,6 +15,21 @@ namespace Matakltm\LaravelModelGraph\Services;
  */
 class GraphBuilderService
 {
+    /** @var array<string, bool> */
+    private array $recursionStack = [];
+
+    /** @var array<int, array<int, string>> */
+    private array $loops = [];
+
+    /** @var array<int, string> */
+    private array $warnings = [];
+
+    public function __construct(
+        protected ModelScannerService $modelScanner,
+        protected RelationshipResolverService $relationshipResolver,
+        protected SchemaInspectorService $schemaInspector
+    ) {}
+
     /**
      * Generate the model graph data.
      *
@@ -19,6 +37,186 @@ class GraphBuilderService
      */
     public function generate(): array
     {
-        return [];
+        $this->warnings = [];
+        $models = $this->modelScanner->scan();
+        $nodes = [];
+        $edges = [];
+        $graph = [];
+
+        foreach ($models as $modelClass) {
+            try {
+                $inspection = $this->schemaInspector->inspect($modelClass);
+
+                $nodes[$modelClass] = [
+                    'name' => class_basename($modelClass),
+                    'namespace' => $modelClass,
+                    'fillable' => $inspection['fillable'] ?? [],
+                    'inLoops' => false,
+                    'loopSeverity' => 0,
+                ];
+            } catch (\Throwable $e) {
+                $this->warnings[] = "Error inspecting model {$modelClass}: " . $e->getMessage();
+                // Still add the node but with limited info
+                $nodes[$modelClass] = [
+                    'name' => class_basename($modelClass),
+                    'namespace' => $modelClass,
+                    'fillable' => [],
+                    'inLoops' => false,
+                    'loopSeverity' => 0,
+                ];
+            }
+
+            try {
+                $relationships = $this->relationshipResolver->resolve($modelClass);
+                foreach ($relationships as $rel) {
+                    /** @var string $targetClass */
+                    $targetClass = $rel['target'];
+                    $targetName = class_basename($targetClass);
+
+                    /** @var string $type */
+                    $type = $rel['type'];
+
+                    $edges[] = [
+                        'source' => $modelClass,
+                        'target' => $targetClass,
+                        'type' => $type,
+                        'method' => $rel['method'],
+                        'metadata' => $rel['metadata'] ?? [],
+                        'direction' => $this->getDirection($type),
+                        'cardinality' => $this->getCardinality($type),
+                    ];
+
+                    $graph[$modelClass][] = $targetClass;
+                }
+            } catch (\Throwable $e) {
+                $this->warnings[] = "Error resolving relationships for {$modelClass}: " . $e->getMessage();
+            }
+        }
+
+        $this->detectLoops($graph);
+
+        $uniqueLoops = $this->getUniqueLoops();
+
+        foreach ($uniqueLoops as $loop) {
+            foreach ($loop as $nodeClass) {
+                if (isset($nodes[$nodeClass])) {
+                    $nodes[$nodeClass]['inLoops'] = true;
+                    $nodes[$nodeClass]['loopSeverity']++;
+                }
+            }
+        }
+
+        return [
+            'version' => '1.0.0',
+            'timestamp' => Carbon::now()->toIso8601String(),
+            'totalModels' => count($nodes),
+            'totalRelationships' => count($edges),
+            'warnings' => $this->warnings,
+            'models' => array_values($nodes),
+            'relationships' => $edges,
+            'loops' => $uniqueLoops,
+        ];
+    }
+
+    /**
+     * Detect loops in the graph using DFS.
+     *
+     * @param array<string, array<int, string>> $graph
+     */
+    private function detectLoops(array $graph): void
+    {
+        $this->recursionStack = [];
+        $this->loops = [];
+
+        /** @var int $maxDepth */
+        $maxDepth = Config::get('model-graph.relationships.max_depth', 5);
+
+        foreach (array_keys($graph) as $node) {
+            $this->dfs($node, $graph, [], 0, $maxDepth);
+        }
+    }
+
+    /**
+     * Depth-First Search to find cycles.
+     *
+     * @param string $node
+     * @param array<string, array<int, string>> $graph
+     * @param array<int, string> $path
+     * @param int $depth
+     * @param int $maxDepth
+     */
+    private function dfs(string $node, array $graph, array $path, int $depth, int $maxDepth): void
+    {
+        if ($depth > $maxDepth) {
+            return;
+        }
+
+        $this->recursionStack[$node] = true;
+        $path[] = $node;
+
+        if (isset($graph[$node])) {
+            foreach ($graph[$node] as $neighbor) {
+                if (isset($this->recursionStack[$neighbor])) {
+                    $loopStartIdx = array_search($neighbor, $path);
+                    if ($loopStartIdx !== false) {
+                        /** @var array<int, string> $loop */
+                        $loop = array_slice($path, (int) $loopStartIdx);
+                        $this->loops[] = $loop;
+                    }
+                } else {
+                    $this->dfs($neighbor, $graph, $path, $depth + 1, $maxDepth);
+                }
+            }
+        }
+
+        unset($this->recursionStack[$node]);
+    }
+
+    /**
+     * Filter loops to get only unique cycles.
+     *
+     * @return array<int, array<int, string>>
+     */
+    private function getUniqueLoops(): array
+    {
+        $unique = [];
+        $hashes = [];
+
+        foreach ($this->loops as $loop) {
+            $sorted = $loop;
+            sort($sorted);
+            $hash = implode('|', $sorted);
+            if (! in_array($hash, $hashes)) {
+                $hashes[] = $hash;
+                $unique[] = $loop;
+            }
+        }
+
+        return $unique;
+    }
+
+    /**
+     * Get the direction of the relationship.
+     */
+    private function getDirection(string $type): string
+    {
+        return match ($type) {
+            'BelongsTo', 'BelongsToMany', 'MorphTo', 'MorphedByMany' => 'incoming',
+            default => 'outgoing',
+        };
+    }
+
+    /**
+     * Get the cardinality of the relationship.
+     */
+    private function getCardinality(string $type): string
+    {
+        return match ($type) {
+            'HasOne', 'MorphOne', 'HasOneThrough' => 'one-to-one',
+            'HasMany', 'MorphMany', 'HasManyThrough' => 'one-to-many',
+            'BelongsTo', 'MorphTo' => 'many-to-one',
+            'BelongsToMany', 'MorphToMany', 'MorphedByMany' => 'many-to-many',
+            default => 'unknown',
+        };
     }
 }

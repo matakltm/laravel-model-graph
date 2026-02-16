@@ -14,10 +14,20 @@ class SchemaInspectorService
     /**
      * Inspect the schema for a given model.
      *
+     * @param string $model
      * @return array<string, mixed>
      */
     public function inspect(string $model): array
     {
-        return [];
+        if (! class_exists($model)) {
+            return [];
+        }
+
+        /** @var \Illuminate\Database\Eloquent\Model $instance */
+        $instance = new $model;
+
+        return [
+            'fillable' => $instance->getFillable(),
+        ];
     }
 }

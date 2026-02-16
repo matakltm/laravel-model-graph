@@ -1,6 +1,9 @@
 <?php
 
 use Matakltm\LaravelModelGraph\Services\SchemaInspectorService;
+use Tests\TestCase;
+
+uses(TestCase::class);
 
 test('it can be instantiated', function (): void {
     $service = new SchemaInspectorService;
