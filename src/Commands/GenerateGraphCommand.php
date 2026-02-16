@@ -89,7 +89,7 @@ class GenerateGraphCommand extends Command
 
         File::put($storagePath, (string) $json);
 
-        $this->info('Model graph successfully generated and saved to: ' . $storagePath);
+        $this->info('Model graph successfully generated and saved to: '.$storagePath);
 
         return self::SUCCESS;
     }

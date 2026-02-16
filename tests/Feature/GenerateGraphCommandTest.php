@@ -29,7 +29,7 @@ test('generate graph command exists', function (): void {
 test('command can be called and generates file', function (): void {
     $this->artisan('model-graph:generate')
         ->expectsOutput('Generating model graph...')
-        ->expectsOutput('Model graph successfully generated and saved to: ' . $this->storagePath)
+        ->expectsOutput('Model graph successfully generated and saved to: '.$this->storagePath)
         ->assertExitCode(0);
 
     expect(File::exists($this->storagePath))->toBeTrue();

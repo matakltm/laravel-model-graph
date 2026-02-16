@@ -19,8 +19,7 @@ class GraphBuilderService
         protected ModelScannerService $scanner,
         protected RelationshipResolverService $resolver,
         protected SchemaInspectorService $inspector
-    ) {
-    }
+    ) {}
 
     /**
      * Get the list of models from the scanner.

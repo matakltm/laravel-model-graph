@@ -4,6 +4,9 @@ use Matakltm\LaravelModelGraph\Services\GraphBuilderService;
 use Matakltm\LaravelModelGraph\Services\ModelScannerService;
 use Matakltm\LaravelModelGraph\Services\RelationshipResolverService;
 use Matakltm\LaravelModelGraph\Services\SchemaInspectorService;
+use Tests\TestCase;
+
+uses(TestCase::class);
 
 test('it can be instantiated', function (): void {
     $service = new GraphBuilderService(
