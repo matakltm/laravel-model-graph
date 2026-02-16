@@ -33,7 +33,6 @@ class RelationshipResolverService
     /**
      * Resolve relationships for a given model.
      *
-     * @param string $model
      * @return array<string, mixed>
      */
     public function resolve(string $model): array
@@ -43,12 +42,12 @@ class RelationshipResolverService
         }
 
         try {
-            if (!class_exists($model)) {
+            if (! class_exists($model)) {
                 return [];
             }
 
             $instance = app()->make($model);
-            if (!$instance instanceof Model) {
+            if (! $instance instanceof Model) {
                 return [];
             }
         } catch (Throwable $e) {
@@ -79,10 +78,6 @@ class RelationshipResolverService
 
     /**
      * Determine if a method should be skipped during relationship resolution.
-     *
-     * @param ReflectionMethod $method
-     * @param string $model
-     * @return bool
      */
     private function shouldSkipMethod(ReflectionMethod $method, string $model): bool
     {
@@ -106,8 +101,6 @@ class RelationshipResolverService
     /**
      * Extract metadata from a relationship.
      *
-     * @param Relation $relation
-     * @param string $name
      * @return array<string, mixed>
      */
     private function extractRelationshipData(Relation $relation, string $name): array
@@ -165,11 +158,6 @@ class RelationshipResolverService
 
     /**
      * Get a protected property from an object using reflection.
-     *
-     * @param object $object
-     * @param string $property
-     * @param mixed $default
-     * @return mixed
      */
     private function getProtectedProperty(object $object, string $property, mixed $default = null): mixed
     {
@@ -187,11 +175,13 @@ class RelationshipResolverService
 
             if ($prop) {
                 $prop->setAccessible(true);
+
                 return $prop->getValue($object);
             }
         } catch (Throwable $e) {
             // Silently fail
         }
+
         return $default;
     }
 }
