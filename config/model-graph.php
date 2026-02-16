@@ -82,9 +82,24 @@ return [
     |
     */
     'scan' => [
-        'models_path' => app_path('Models'),
+        'models_paths' => [
+            app_path('Models'),
+        ],
+        'ignore_models' => [],
+        'include_only' => [],
         'use_reflection' => true,
         'use_schema_inspection' => true,
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cache Duration
+    |--------------------------------------------------------------------------
+    |
+    | The duration in seconds to cache the discovered models.
+    | Set to 0 to disable caching.
+    |
+    */
+    'cache_duration' => env('MODEL_GRAPH_CACHE_DURATION', 3600),
 
 ];
