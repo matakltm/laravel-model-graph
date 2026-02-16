@@ -132,6 +132,7 @@ return [
         'models_path' => env('MODEL_GRAPH_MODELS_PATH', app_path('Models')),
         'use_reflection' => (bool) env('MODEL_GRAPH_USE_REFLECTION', true),
         'use_schema_inspection' => (bool) env('MODEL_GRAPH_USE_SCHEMA_INSPECTION', true),
+        'fake_schema' => (bool) env('MODEL_GRAPH_FAKE_SCHEMA', false),
     ],
 
 ];
