@@ -1,0 +1,61 @@
+{
+    "name": "matakltm/laravel-model-graph",
+    "description": "Laravel Model Graph",
+    "keywords": [
+        "php",
+        "laravel",
+        "model",
+        "graph"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Micheal Ataklt",
+            "email": "matakltm.code@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^8.4.0"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.24.0",
+        "pestphp/pest": "^4.1.0",
+        "pestphp/pest-plugin-type-coverage": "^4.0.2",
+        "phpstan/phpstan": "^2.1.26",
+        "rector/rector": "^2.1.7",
+        "symfony/var-dumper": "^7.3.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "Matakltm\\LaravelModelGraph\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "sort-packages": true,
+        "preferred-install": "dist",
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "scripts": {
+        "lint": "pint",
+        "refactor": "rector",
+        "test:type-coverage": "pest --type-coverage --exactly=100",
+        "test:lint": "pint --test",
+        "test:types": "phpstan",
+        "test:refactor": "rector --dry-run",
+        "test": [
+            "@test:lint",
+            "@test:type-coverage",
+            "@test:types",
+            "@test:refactor"
+        ]
+    }
+}
