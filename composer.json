@@ -15,10 +15,17 @@
         }
     ],
     "require": {
-        "php": "^8.4.0"
+        "php": "^8.3",
+        "illuminate/console": "^10.0|^11.0|^12.0",
+        "illuminate/database": "^10.0|^11.0|^12.0",
+        "illuminate/http": "^10.0|^11.0|^12.0",
+        "illuminate/routing": "^10.0|^11.0|^12.0",
+        "illuminate/support": "^10.0|^11.0|^12.0",
+        "illuminate/view": "^10.0|^11.0|^12.0"
     },
     "require-dev": {
         "laravel/pint": "^1.24.0",
+        "orchestra/testbench": "^8.0|^9.0|^10.0",
         "pestphp/pest": "^4.1.0",
         "pestphp/pest-plugin-type-coverage": "^4.0.2",
         "phpstan/phpstan": "^2.1.26",
@@ -33,6 +40,13 @@
     "autoload-dev": {
         "psr-4": {
             "Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Matakltm\\LaravelModelGraph\\Providers\\LaravelModelGraphServiceProvider"
+            ]
         }
     },
     "minimum-stability": "dev",
