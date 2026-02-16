@@ -32,6 +32,10 @@ function createTestTable(): void
 }
 
 test('it can inspect a table', function (): void {
+    if (! in_array('sqlite', PDO::getAvailableDrivers(), true)) {
+        $this->markTestSkipped('SQLite driver not available.');
+    }
+
     createTestTable();
 
     $service = new SchemaInspectorService;
