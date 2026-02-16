@@ -6,28 +6,26 @@ use Tests\TestCase;
 
 uses(TestCase::class);
 
-it('registers command when enabled', function () {
+it('registers command when enabled', function (): void {
     // By default it is enabled in config
     expect(Artisan::all())->toHaveKey('model-graph:generate');
 });
 
-it('logic: isEnabled returns false when disabled', function () {
+it('logic: isEnabled returns false when disabled', function (): void {
     $provider = new LaravelModelGraphServiceProvider(app());
 
     config(['model-graph.enabled' => false]);
 
     $reflection = new ReflectionClass($provider);
     $method = $reflection->getMethod('isEnabled');
-    $method->setAccessible(true);
 
     expect($method->invoke($provider))->toBeFalse();
 });
 
-it('logic: respects environment settings', function () {
+it('logic: respects environment settings', function (): void {
     $provider = new LaravelModelGraphServiceProvider(app());
     $reflection = new ReflectionClass($provider);
     $method = $reflection->getMethod('isEnabled');
-    $method->setAccessible(true);
 
     // Test production allowed
     config([
@@ -36,7 +34,7 @@ it('logic: respects environment settings', function () {
         'model-graph.allow_production' => true,
     ]);
     // Mock environment
-    app()->detectEnvironment(fn() => 'production');
+    app()->detectEnvironment(fn (): string => 'production');
     expect($method->invoke($provider))->toBeTrue();
 
     // Test production not allowed
@@ -46,7 +44,7 @@ it('logic: respects environment settings', function () {
     expect($method->invoke($provider))->toBeFalse();
 
     // Reset to testing for further tests
-    app()->detectEnvironment(fn() => 'testing');
+    app()->detectEnvironment(fn (): string => 'testing');
 
     // Test environment mismatch
     config([

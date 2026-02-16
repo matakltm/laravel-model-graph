@@ -67,6 +67,7 @@ class LaravelModelGraphServiceProvider extends ServiceProvider
             return false;
         }
 
+        /** @var array<int, string>|string $environments */
         $environments = config('model-graph.environments', ['local', 'testing']);
 
         return empty($environments) || $this->app->environment($environments);
