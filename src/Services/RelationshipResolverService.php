@@ -22,7 +22,6 @@ class RelationshipResolverService
     /**
      * Resolve relationships for a given model.
      *
-     * @param string $model
      * @return array<int, array<string, mixed>>
      */
     public function resolve(string $model): array
@@ -91,8 +90,6 @@ class RelationshipResolverService
     /**
      * Extract relationship data.
      *
-     * @param string $model
-     * @param ReflectionMethod $method
      * @return array<string, mixed>
      */
     private function extractRelationshipData(string $model, ReflectionMethod $method): array
@@ -116,35 +113,40 @@ class RelationshipResolverService
     /**
      * Get foreign key from relation if possible.
      *
-     * @param Relation<\Illuminate\Database\Eloquent\Model, \Illuminate\Database\Eloquent\Model, mixed> $relation
+     * @param  Relation<\Illuminate\Database\Eloquent\Model, \Illuminate\Database\Eloquent\Model, mixed>  $relation
      */
     private function getForeignKey(Relation $relation): ?string
     {
         if (method_exists($relation, 'getForeignKeyName')) {
             /** @var string $key */
             $key = $relation->getForeignKeyName();
+
             return $key;
         }
+
         return null;
     }
 
     /**
      * Get owner key from relation if possible.
      *
-     * @param Relation<\Illuminate\Database\Eloquent\Model, \Illuminate\Database\Eloquent\Model, mixed> $relation
+     * @param  Relation<\Illuminate\Database\Eloquent\Model, \Illuminate\Database\Eloquent\Model, mixed>  $relation
      */
     private function getOwnerKey(Relation $relation): ?string
     {
         if (method_exists($relation, 'getOwnerKeyName')) {
             /** @var string $key */
             $key = $relation->getOwnerKeyName();
+
             return $key;
         }
         if (method_exists($relation, 'getLocalKeyName')) {
             /** @var string $key */
             $key = $relation->getLocalKeyName();
+
             return $key;
         }
+
         return null;
     }
 }

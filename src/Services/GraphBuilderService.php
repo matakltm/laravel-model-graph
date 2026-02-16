@@ -55,7 +55,7 @@ class GraphBuilderService
                     'loopSeverity' => 0,
                 ];
             } catch (\Throwable $e) {
-                $this->warnings[] = "Error inspecting model {$modelClass}: " . $e->getMessage();
+                $this->warnings[] = "Error inspecting model {$modelClass}: ".$e->getMessage();
                 // Still add the node but with limited info
                 $nodes[$modelClass] = [
                     'name' => class_basename($modelClass),
@@ -71,7 +71,6 @@ class GraphBuilderService
                 foreach ($relationships as $rel) {
                     /** @var string $targetClass */
                     $targetClass = $rel['target'];
-                    $targetName = class_basename($targetClass);
 
                     /** @var string $type */
                     $type = $rel['type'];
@@ -89,7 +88,7 @@ class GraphBuilderService
                     $graph[$modelClass][] = $targetClass;
                 }
             } catch (\Throwable $e) {
-                $this->warnings[] = "Error resolving relationships for {$modelClass}: " . $e->getMessage();
+                $this->warnings[] = "Error resolving relationships for {$modelClass}: ".$e->getMessage();
             }
         }
 
@@ -106,12 +105,18 @@ class GraphBuilderService
             }
         }
 
+        /** @var int $jsonOptions */
+        $jsonOptions = Config::get('model-graph.json_options', JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
         return [
             'version' => '1.0.0',
             'timestamp' => Carbon::now()->toIso8601String(),
             'totalModels' => count($nodes),
             'totalRelationships' => count($edges),
             'warnings' => $this->warnings,
+            'options' => [
+                'json_options' => $jsonOptions,
+            ],
             'models' => array_values($nodes),
             'relationships' => $edges,
             'loops' => $uniqueLoops,
@@ -121,7 +126,7 @@ class GraphBuilderService
     /**
      * Detect loops in the graph using DFS.
      *
-     * @param array<string, array<int, string>> $graph
+     * @param  array<string, array<int, string>>  $graph
      */
     private function detectLoops(array $graph): void
     {
@@ -139,11 +144,8 @@ class GraphBuilderService
     /**
      * Depth-First Search to find cycles.
      *
-     * @param string $node
-     * @param array<string, array<int, string>> $graph
-     * @param array<int, string> $path
-     * @param int $depth
-     * @param int $maxDepth
+     * @param  array<string, array<int, string>>  $graph
+     * @param  array<int, string>  $path
      */
     private function dfs(string $node, array $graph, array $path, int $depth, int $maxDepth): void
     {

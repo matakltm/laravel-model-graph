@@ -1,11 +1,11 @@
 <?php
 
+use Illuminate\Support\Facades\Config;
 use Matakltm\LaravelModelGraph\Services\GraphBuilderService;
 use Matakltm\LaravelModelGraph\Services\ModelScannerService;
 use Matakltm\LaravelModelGraph\Services\RelationshipResolverService;
 use Matakltm\LaravelModelGraph\Services\SchemaInspectorService;
 use Tests\TestCase;
-use Illuminate\Support\Facades\Config;
 
 uses(TestCase::class);
 
@@ -19,7 +19,7 @@ test('generate method returns the expected structure', function (): void {
     $data = $service->generate();
 
     expect($data)->toBeArray()
-        ->toHaveKeys(['version', 'timestamp', 'totalModels', 'totalRelationships', 'warnings', 'models', 'relationships', 'loops']);
+        ->toHaveKeys(['version', 'timestamp', 'totalModels', 'totalRelationships', 'warnings', 'options', 'models', 'relationships', 'loops']);
 });
 
 test('it detects loops correctly', function (): void {

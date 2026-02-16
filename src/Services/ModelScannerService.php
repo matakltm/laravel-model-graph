@@ -29,7 +29,7 @@ class ModelScannerService
             return [];
         }
 
-        $finder = new Finder();
+        $finder = new Finder;
         $finder->files()->in($path)->name('*.php');
 
         $models = [];
@@ -40,7 +40,7 @@ class ModelScannerService
             $className = $this->extractClassName($content);
 
             if ($namespace !== null && $className !== null) {
-                $fullClassName = $namespace . '\\' . $className;
+                $fullClassName = $namespace.'\\'.$className;
 
                 if (class_exists($fullClassName) && is_subclass_of($fullClassName, Model::class)) {
                     $models[] = $fullClassName;

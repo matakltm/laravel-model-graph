@@ -14,7 +14,6 @@ class SchemaInspectorService
     /**
      * Inspect the schema for a given model.
      *
-     * @param string $model
      * @return array<string, mixed>
      */
     public function inspect(string $model): array
