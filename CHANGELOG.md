@@ -1,3 +1,12 @@
+## v2026.02.17
+
+### ✨ Features
+- scaffold initial Laravel Model Graph package structure, configuration, documentation, and CI/CD workflows. (31368f5)
+
+### 🧹 Maintenance
+- Delete file. (b5a6228)
+
+
 # Changelog
 All notable changes to this project will be documented in this file.
 
