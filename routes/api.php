@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::group([
     'prefix' => 'api/v1',
-    'middleware' => config('model-graph.api_middleware', ['web'])
+    'middleware' => config('model-graph.api_middleware', ['web']),
 ], function () {
     // Route::get('/graph/data', [GraphApiController::class, 'data'])->name('model-graph.api.data');
 });

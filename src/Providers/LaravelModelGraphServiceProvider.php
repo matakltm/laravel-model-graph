@@ -20,7 +20,7 @@ class LaravelModelGraphServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(
-            __DIR__ . '/../../config/model-graph.php',
+            __DIR__.'/../../config/model-graph.php',
             'model-graph'
         );
     }
@@ -37,16 +37,16 @@ class LaravelModelGraphServiceProvider extends ServiceProvider
         }
 
         $this->publishes([
-            __DIR__ . '/../../config/model-graph.php' => config_path('model-graph.php'),
+            __DIR__.'/../../config/model-graph.php' => config_path('model-graph.php'),
         ], 'model-graph-config');
 
         $this->publishes([
-            __DIR__ . '/../../resources/dist' => public_path('vendor/model-graph'),
+            __DIR__.'/../../resources/dist' => public_path('vendor/model-graph'),
         ], 'model-graph-assets');
 
-        $this->loadRoutesFrom(__DIR__ . '/../../routes/web.php');
-        $this->loadRoutesFrom(__DIR__ . '/../../routes/api.php');
+        $this->loadRoutesFrom(__DIR__.'/../../routes/web.php');
+        $this->loadRoutesFrom(__DIR__.'/../../routes/api.php');
 
-        $this->loadViewsFrom(__DIR__ . '/../../resources/views', 'model-graph');
+        $this->loadViewsFrom(__DIR__.'/../../resources/views', 'model-graph');
     }
 }

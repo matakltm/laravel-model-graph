@@ -1,7 +1,6 @@
 <?php
 
 use Matakltm\LaravelModelGraph\Commands\GenerateGraphCommand;
-use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
 uses(TestCase::class);
