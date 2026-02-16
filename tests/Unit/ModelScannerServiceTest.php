@@ -10,7 +10,7 @@ use Tests\TestCase;
 
 uses(TestCase::class);
 
-beforeEach(function () {
+beforeEach(function (): void {
     $this->testModelsPath = __DIR__.'/../tmp/Models';
     if (! is_dir($this->testModelsPath)) {
         File::makeDirectory($this->testModelsPath, 0777, true);
@@ -25,12 +25,12 @@ beforeEach(function () {
     Config::set('model-graph.cache_duration', 3600);
 });
 
-afterEach(function () {
+afterEach(function (): void {
     File::deleteDirectory(__DIR__.'/../tmp');
     Cache::flush();
 });
 
-test('it scans configured paths for models', function () {
+test('it scans configured paths for models', function (): void {
     $service = new ModelScannerService;
     $models = $service->scan();
 
@@ -39,7 +39,7 @@ test('it scans configured paths for models', function () {
     expect($models)->not->toContain('Tests\\tmp\\Models\\NotAModel');
 });
 
-test('it respects ignore_models filter', function () {
+test('it respects ignore_models filter', function (): void {
     Config::set('model-graph.scan.ignore_models', ['Tests\\tmp\\Models\\Post']);
 
     $service = new ModelScannerService;
@@ -49,7 +49,7 @@ test('it respects ignore_models filter', function () {
     expect($models)->not->toContain('Tests\\tmp\\Models\\Post');
 });
 
-test('it respects include_only filter', function () {
+test('it respects include_only filter', function (): void {
     Config::set('model-graph.scan.include_only', ['Tests\\tmp\\Models\\User']);
 
     $service = new ModelScannerService;
@@ -59,7 +59,7 @@ test('it respects include_only filter', function () {
     expect($models)->not->toContain('Tests\\tmp\\Models\\Post');
 });
 
-test('it caches results and still fires events', function () {
+test('it caches results and still fires events', function (): void {
     $service = new ModelScannerService;
 
     // First scan
@@ -73,26 +73,20 @@ test('it caches results and still fires events', function () {
 
     expect($modelsCached)->toBe($models);
     Event::assertDispatched(ModelDiscovered::class, 2);
-    Event::assertDispatched(ModelDiscovered::class, function ($event) {
-        return $event->modelClass === 'Tests\\tmp\\Models\\User';
-    });
+    Event::assertDispatched(ModelDiscovered::class, fn ($event): bool => $event->modelClass === 'Tests\\tmp\\Models\\User');
 });
 
-test('it fires ModelDiscovered events', function () {
+test('it fires ModelDiscovered events', function (): void {
     Event::fake();
 
     $service = new ModelScannerService;
     $service->scan();
 
-    Event::assertDispatched(ModelDiscovered::class, function ($event) {
-        return $event->modelClass === 'Tests\\tmp\\Models\\User';
-    });
-    Event::assertDispatched(ModelDiscovered::class, function ($event) {
-        return $event->modelClass === 'Tests\\tmp\\Models\\Post';
-    });
+    Event::assertDispatched(ModelDiscovered::class, fn ($event): bool => $event->modelClass === 'Tests\\tmp\\Models\\User');
+    Event::assertDispatched(ModelDiscovered::class, fn ($event): bool => $event->modelClass === 'Tests\\tmp\\Models\\Post');
 });
 
-test('it handles global namespace models', function () {
+test('it handles global namespace models', function (): void {
     // We can't easily test global namespace models in this environment without affecting other tests
     // but we can mock the getClassFromFile method or just rely on the implementation logic.
     // For now, let's just test that the logic in getClassFromFile handles it.

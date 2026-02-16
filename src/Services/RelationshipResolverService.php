@@ -50,7 +50,7 @@ class RelationshipResolverService
             if (! $instance instanceof Model) {
                 return [];
             }
-        } catch (Throwable $e) {
+        } catch (Throwable) {
             return [];
         }
 
@@ -58,7 +58,7 @@ class RelationshipResolverService
         $reflection = new ReflectionClass($model);
 
         foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
-            if ($this->shouldSkipMethod($method, $model)) {
+            if ($this->shouldSkipMethod($method)) {
                 continue;
             }
 
@@ -68,7 +68,7 @@ class RelationshipResolverService
                 if ($return instanceof Relation) {
                     $relationships[$method->getName()] = $this->extractRelationshipData($return, $method->getName());
                 }
-            } catch (Throwable $e) {
+            } catch (Throwable) {
                 continue;
             }
         }
@@ -79,36 +79,41 @@ class RelationshipResolverService
     /**
      * Determine if a method should be skipped during relationship resolution.
      */
-    private function shouldSkipMethod(ReflectionMethod $method, string $model): bool
+    private function shouldSkipMethod(ReflectionMethod $method): bool
     {
         $skippedClasses = [
             Model::class,
-            'Illuminate\Database\Eloquent\Concerns\HasRelationships',
-            'Illuminate\Database\Eloquent\Concerns\HasAttributes',
-            'Illuminate\Database\Eloquent\Concerns\HidesAttributes',
-            'Illuminate\Database\Eloquent\Concerns\GuardsAttributes',
-            'Illuminate\Database\Eloquent\Concerns\HasEvents',
-            'Illuminate\Database\Eloquent\Concerns\HasGlobalScopes',
-            'Illuminate\Database\Eloquent\Concerns\HasTimestamps',
-            'Illuminate\Database\Eloquent\Concerns\QueriesRelationships',
+            \Illuminate\Database\Eloquent\Concerns\HasRelationships::class,
+            \Illuminate\Database\Eloquent\Concerns\HasAttributes::class,
+            \Illuminate\Database\Eloquent\Concerns\HidesAttributes::class,
+            \Illuminate\Database\Eloquent\Concerns\GuardsAttributes::class,
+            \Illuminate\Database\Eloquent\Concerns\HasEvents::class,
+            \Illuminate\Database\Eloquent\Concerns\HasGlobalScopes::class,
+            \Illuminate\Database\Eloquent\Concerns\HasTimestamps::class,
+            \Illuminate\Database\Eloquent\Concerns\QueriesRelationships::class,
         ];
+        if ($method->getNumberOfParameters() > 0) {
+            return true;
+        }
 
-        return $method->getNumberOfParameters() > 0
-            || $method->isStatic()
-            || in_array($method->getDeclaringClass()->getName(), $skippedClasses);
+        if ($method->isStatic()) {
+            return true;
+        }
+
+        return in_array($method->getDeclaringClass()->getName(), $skippedClasses);
     }
 
     /**
      * Extract metadata from a relationship.
      *
-     * @param Relation<Model, Model, mixed> $relation
+     * @param  Relation<Model, Model, mixed>  $relation
      * @return array<string, mixed>
      */
     private function extractRelationshipData(Relation $relation, string $name): array
     {
         $reflection = new ReflectionClass($relation);
         $type = $reflection->getShortName();
-        $relatedModel = get_class($relation->getRelated());
+        $relatedModel = $relation->getRelated()::class;
 
         $data = [
             'name' => $name,
@@ -135,7 +140,7 @@ class RelationshipResolverService
 
         if ($relation instanceof HasOneThrough || $relation instanceof HasManyThrough) {
             $throughParent = $this->getProtectedProperty($relation, 'throughParent');
-            $data['through_model'] = is_object($throughParent) ? get_class($throughParent) : null;
+            $data['through_model'] = is_object($throughParent) ? $throughParent::class : null;
             $data['first_key'] = $this->getProtectedProperty($relation, 'firstKey');
             $data['second_key'] = $this->getProtectedProperty($relation, 'secondKey');
             $data['local_key'] = $this->getProtectedProperty($relation, 'localKey');
@@ -172,15 +177,14 @@ class RelationshipResolverService
                     $prop = $currentClass->getProperty($property);
                     break;
                 }
+
                 $currentClass = $currentClass->getParentClass();
             }
 
             if ($prop) {
-                $prop->setAccessible(true);
-
                 return $prop->getValue($object);
             }
-        } catch (Throwable $e) {
+        } catch (Throwable) {
             // Silently fail
         }
 

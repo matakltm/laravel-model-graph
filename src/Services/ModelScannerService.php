@@ -127,6 +127,7 @@ class ModelScannerService
                     if ($tokens[$j] === '{') {
                         break;
                     }
+
                     if (is_array($tokens[$j]) && $tokens[$j][0] === T_STRING) {
                         $class = $tokens[$j][1];
                         break;
@@ -134,8 +135,8 @@ class ModelScannerService
                 }
             }
 
-            if ($class) {
-                return $namespace ? $namespace.'\\'.$class : $class;
+            if ($class !== '' && $class !== '0') {
+                return $namespace !== '' && $namespace !== '0' ? $namespace.'\\'.$class : $class;
             }
         }
 

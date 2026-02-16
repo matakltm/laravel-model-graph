@@ -21,6 +21,7 @@ use Tests\TestCase;
 uses(TestCase::class);
 
 class RelatedModel extends Model {}
+
 class ThroughModel extends Model {}
 
 class MockModel extends Model
