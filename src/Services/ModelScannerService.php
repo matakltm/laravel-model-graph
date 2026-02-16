@@ -25,12 +25,13 @@ class ModelScannerService
      */
     public function scan(): array
     {
-        $cacheDuration = (int) Config::get('model-graph.cache_duration', 3600);
+        /** @var int $cacheDuration */
+        $cacheDuration = Config::get('model-graph.cache_duration', 3600);
         $cacheKey = 'laravel-model-graph-models';
 
         if ($cacheDuration > 0 && Cache::has($cacheKey)) {
             /** @var array<int, string> $models */
-            $models = (array) Cache::get($cacheKey);
+            $models = Cache::get($cacheKey);
 
             foreach ($models as $model) {
                 ModelDiscovered::dispatch($model);
