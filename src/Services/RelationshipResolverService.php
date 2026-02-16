@@ -101,6 +101,7 @@ class RelationshipResolverService
     /**
      * Extract metadata from a relationship.
      *
+     * @param Relation<Model, Model, mixed> $relation
      * @return array<string, mixed>
      */
     private function extractRelationshipData(Relation $relation, string $name): array
@@ -133,7 +134,8 @@ class RelationshipResolverService
         }
 
         if ($relation instanceof HasOneThrough || $relation instanceof HasManyThrough) {
-            $data['through_model'] = get_class($this->getProtectedProperty($relation, 'throughParent'));
+            $throughParent = $this->getProtectedProperty($relation, 'throughParent');
+            $data['through_model'] = is_object($throughParent) ? get_class($throughParent) : null;
             $data['first_key'] = $this->getProtectedProperty($relation, 'firstKey');
             $data['second_key'] = $this->getProtectedProperty($relation, 'secondKey');
             $data['local_key'] = $this->getProtectedProperty($relation, 'localKey');
