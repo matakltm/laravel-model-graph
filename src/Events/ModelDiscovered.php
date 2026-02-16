@@ -14,10 +14,6 @@ class ModelDiscovered
 
     /**
      * Create a new event instance.
-     *
-     * @param string $modelClass
      */
-    public function __construct(public string $modelClass)
-    {
-    }
+    public function __construct(public string $modelClass) {}
 }

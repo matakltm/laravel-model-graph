@@ -1,37 +1,37 @@
 <?php
 
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
-use Matakltm\LaravelModelGraph\Services\ModelScannerService;
-use Matakltm\LaravelModelGraph\Events\ModelDiscovered;
 use Illuminate\Support\Facades\File;
+use Matakltm\LaravelModelGraph\Events\ModelDiscovered;
+use Matakltm\LaravelModelGraph\Services\ModelScannerService;
 use Tests\TestCase;
 
 uses(TestCase::class);
 
 beforeEach(function () {
-    $this->testModelsPath = __DIR__ . '/../tmp/Models';
-    if (!is_dir($this->testModelsPath)) {
+    $this->testModelsPath = __DIR__.'/../tmp/Models';
+    if (! is_dir($this->testModelsPath)) {
         File::makeDirectory($this->testModelsPath, 0777, true);
     }
 
     // Create dummy model files
-    File::put($this->testModelsPath . '/User.php', "<?php namespace Tests\\tmp\\Models; class User extends \Illuminate\Database\Eloquent\Model {}");
-    File::put($this->testModelsPath . '/Post.php', "<?php namespace Tests\\tmp\\Models; class Post extends \Illuminate\Database\Eloquent\Model {}");
-    File::put($this->testModelsPath . '/NotAModel.php', "<?php namespace Tests\\tmp\\Models; class NotAModel {}");
+    File::put($this->testModelsPath.'/User.php', "<?php namespace Tests\\tmp\\Models; class User extends \Illuminate\Database\Eloquent\Model {}");
+    File::put($this->testModelsPath.'/Post.php', "<?php namespace Tests\\tmp\\Models; class Post extends \Illuminate\Database\Eloquent\Model {}");
+    File::put($this->testModelsPath.'/NotAModel.php', '<?php namespace Tests\\tmp\\Models; class NotAModel {}');
 
     Config::set('model-graph.scan.models_paths', [$this->testModelsPath]);
     Config::set('model-graph.cache_duration', 3600);
 });
 
 afterEach(function () {
-    File::deleteDirectory(__DIR__ . '/../tmp');
+    File::deleteDirectory(__DIR__.'/../tmp');
     Cache::flush();
 });
 
 test('it scans configured paths for models', function () {
-    $service = new ModelScannerService();
+    $service = new ModelScannerService;
     $models = $service->scan();
 
     expect($models)->toContain('Tests\\tmp\\Models\\User');
@@ -42,7 +42,7 @@ test('it scans configured paths for models', function () {
 test('it respects ignore_models filter', function () {
     Config::set('model-graph.scan.ignore_models', ['Tests\\tmp\\Models\\Post']);
 
-    $service = new ModelScannerService();
+    $service = new ModelScannerService;
     $models = $service->scan();
 
     expect($models)->toContain('Tests\\tmp\\Models\\User');
@@ -52,7 +52,7 @@ test('it respects ignore_models filter', function () {
 test('it respects include_only filter', function () {
     Config::set('model-graph.scan.include_only', ['Tests\\tmp\\Models\\User']);
 
-    $service = new ModelScannerService();
+    $service = new ModelScannerService;
     $models = $service->scan();
 
     expect($models)->toContain('Tests\\tmp\\Models\\User');
@@ -60,7 +60,7 @@ test('it respects include_only filter', function () {
 });
 
 test('it caches results and still fires events', function () {
-    $service = new ModelScannerService();
+    $service = new ModelScannerService;
 
     // First scan
     $models = $service->scan();
@@ -81,7 +81,7 @@ test('it caches results and still fires events', function () {
 test('it fires ModelDiscovered events', function () {
     Event::fake();
 
-    $service = new ModelScannerService();
+    $service = new ModelScannerService;
     $service->scan();
 
     Event::assertDispatched(ModelDiscovered::class, function ($event) {
@@ -97,11 +97,13 @@ test('it handles global namespace models', function () {
     // but we can mock the getClassFromFile method or just rely on the implementation logic.
     // For now, let's just test that the logic in getClassFromFile handles it.
 
-    $tempFile = $this->testModelsPath . '/GlobalModel.php';
+    $tempFile = $this->testModelsPath.'/GlobalModel.php';
     File::put($tempFile, "<?php class GlobalModel extends \Illuminate\Database\Eloquent\Model {}");
 
-    $service = new class extends ModelScannerService {
-        public function publicGetClassFromFile(string $path): ?string {
+    $service = new class extends ModelScannerService
+    {
+        public function publicGetClassFromFile(string $path): ?string
+        {
             return $this->getClassFromFile($path);
         }
     };

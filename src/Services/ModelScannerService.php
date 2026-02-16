@@ -65,18 +65,18 @@ class ModelScannerService
         $models = [];
 
         foreach ($paths as $path) {
-            if (!is_dir($path)) {
+            if (! is_dir($path)) {
                 continue;
             }
 
-            $finder = new Finder();
+            $finder = new Finder;
             $finder->files()->in($path)->name('*.php');
 
             foreach ($finder as $file) {
                 $class = $this->getClassFromFile($file->getRealPath());
 
                 if ($class && $this->isEloquentModel($class)) {
-                    if (!empty($includeOnly) && !in_array($class, $includeOnly)) {
+                    if (! empty($includeOnly) && ! in_array($class, $includeOnly)) {
                         continue;
                     }
 
@@ -95,9 +95,6 @@ class ModelScannerService
 
     /**
      * Get the class name from the file path.
-     *
-     * @param string $path
-     * @return string|null
      */
     protected function getClassFromFile(string $path): ?string
     {
@@ -137,7 +134,7 @@ class ModelScannerService
             }
 
             if ($class) {
-                return $namespace ? $namespace . '\\' . $class : $class;
+                return $namespace ? $namespace.'\\'.$class : $class;
             }
         }
 
@@ -146,18 +143,15 @@ class ModelScannerService
 
     /**
      * Check if the class is an Eloquent model.
-     *
-     * @param string $class
-     * @return bool
      */
     protected function isEloquentModel(string $class): bool
     {
-        if (!class_exists($class)) {
+        if (! class_exists($class)) {
             return false;
         }
 
         $reflection = new ReflectionClass($class);
 
-        return $reflection->isSubclassOf(Model::class) && !$reflection->isAbstract();
+        return $reflection->isSubclassOf(Model::class) && ! $reflection->isAbstract();
     }
 }
