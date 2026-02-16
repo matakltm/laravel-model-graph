@@ -30,12 +30,6 @@ class LaravelModelGraphServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                GenerateGraphCommand::class,
-            ]);
-        }
-
         $this->publishes([
             __DIR__.'/../../config/model-graph.php' => config_path('model-graph.php'),
         ], 'model-graph-config');
@@ -44,9 +38,37 @@ class LaravelModelGraphServiceProvider extends ServiceProvider
             __DIR__.'/../../resources/dist' => public_path('vendor/model-graph'),
         ], 'model-graph-assets');
 
+        if (! $this->isEnabled()) {
+            return;
+        }
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                GenerateGraphCommand::class,
+            ]);
+        }
+
         $this->loadRoutesFrom(__DIR__.'/../../routes/web.php');
         $this->loadRoutesFrom(__DIR__.'/../../routes/api.php');
 
         $this->loadViewsFrom(__DIR__.'/../../resources/views', 'model-graph');
+    }
+
+    /**
+     * Check if the package is enabled.
+     */
+    protected function isEnabled(): bool
+    {
+        if (! config('model-graph.enabled', true)) {
+            return false;
+        }
+
+        if ($this->app->environment('production') && ! config('model-graph.allow_production', false)) {
+            return false;
+        }
+
+        $environments = config('model-graph.environments', ['local', 'testing']);
+
+        return empty($environments) || $this->app->environment($environments);
     }
 }
