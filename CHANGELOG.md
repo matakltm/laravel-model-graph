@@ -1,3 +1,14 @@
+## v2026.02.17.1
+
+### ✨ Features
+- fix CI issues by adjusting dependencies and linting (31f2317)
+- generate basic package structure and placeholder files (f737c83)
+
+### 🧹 Maintenance
+- Update copyright holder in LICENSE.md (55eb3c4)
+- Merge pull request #25 from matakltm/feature/structure-11112895871208883107 (a04f7ad)
+
+
 ## v2026.02.17
 
 ### ✨ Features
