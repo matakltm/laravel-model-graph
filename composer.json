@@ -62,9 +62,9 @@
     "scripts": {
         "lint": "pint",
         "refactor": "rector",
-        "test:type-coverage": "pest --type-coverage --exactly=100",
+        "test:type-coverage": "pest --type-coverage --exactly=100 --memory-limit=1G",
         "test:lint": "pint --test",
-        "test:types": "phpstan",
+        "test:types": "phpstan analyse --memory-limit=1G",
         "test:refactor": "rector --dry-run",
         "test": [
             "@test:lint",

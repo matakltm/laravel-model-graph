@@ -135,4 +135,15 @@ return [
         'fake_schema' => (bool) env('MODEL_GRAPH_FAKE_SCHEMA', false),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Cache Duration
+    |--------------------------------------------------------------------------
+    |
+    | The duration in seconds to cache the discovered models.
+    | Set to 0 to disable caching.
+    |
+    */
+    'cache_duration' => env('MODEL_GRAPH_CACHE_DURATION', 3600),
+
 ];
