@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Matakltm\LaravelModelGraph\Services;
 
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Schema;
+
 /**
  * Class SchemaInspectorService
  *
@@ -14,6 +18,7 @@ class SchemaInspectorService
     /**
      * Inspect the schema for a given model.
      *
+     * @param  class-string<Model>  $model
      * @return array<string, mixed>
      */
     public function inspect(string $model): array
