@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Matakltm\LaravelModelGraph\Http\Controllers\GraphController;
 
 /*
 |--------------------------------------------------------------------------
@@ -12,5 +13,5 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::group(['middleware' => config('model-graph.middleware', ['web'])], function () {
-    // Route::get('/graph', [GraphController::class, 'index'])->name('model-graph.index');
+    Route::get('/graph', [GraphController::class, 'index'])->name('model-graph.index');
 });
