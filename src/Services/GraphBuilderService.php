@@ -6,9 +6,8 @@ namespace Matakltm\LaravelModelGraph\Services;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\App;
-use ReflectionClass;
-use Throwable;
+use Illuminate\Support\Facades\Config;
+use Matakltm\LaravelModelGraph\Events\ModelGraphGenerated;
 
 /**
  * Class GraphBuilderService
@@ -27,6 +26,9 @@ class GraphBuilderService
     /** @var array<int, string> */
     private array $warnings = [];
 
+    /**
+     * GraphBuilderService constructor.
+     */
     public function __construct(
         protected ModelScannerService $modelScanner,
         protected RelationshipResolverService $relationshipResolver,
@@ -36,7 +38,7 @@ class GraphBuilderService
     /**
      * Get the list of models from the scanner.
      *
-     * @return array<int, class-string<\Illuminate\Database\Eloquent\Model>>
+     * @return array<int, class-string<Model>>
      */
     public function getModels(): array
     {
@@ -46,7 +48,7 @@ class GraphBuilderService
     /**
      * Generate the model graph data.
      *
-     * @param  array<int, class-string<\Illuminate\Database\Eloquent\Model>>|null  $models
+     * @param  array<int, class-string<Model>>|null  $models
      * @param  (callable(string): void)|null  $onProgress
      * @return array<string, mixed>
      */
@@ -60,6 +62,10 @@ class GraphBuilderService
         $graph = [];
 
         foreach ($models as $modelClass) {
+            if ($onProgress) {
+                $onProgress($modelClass);
+            }
+
             try {
                 $inspection = $this->schemaInspector->inspect($modelClass);
 
@@ -85,7 +91,7 @@ class GraphBuilderService
             try {
                 $relationships = $this->relationshipResolver->resolve($modelClass);
                 foreach ($relationships as $rel) {
-                    /** @var class-string<\Illuminate\Database\Eloquent\Model> $targetClass */
+                    /** @var string|null $targetClass */
                     $targetClass = $rel['target'];
 
                     /** @var string $type */
@@ -101,7 +107,9 @@ class GraphBuilderService
                         'cardinality' => $this->getCardinality($type),
                     ];
 
-                    $graph[$modelClass][] = $targetClass;
+                    if ($targetClass) {
+                        $graph[$modelClass][] = $targetClass;
+                    }
                 }
             } catch (\Throwable $e) {
                 $this->warnings[] = sprintf('Error resolving relationships for %s: ', $modelClass).$e->getMessage();
@@ -127,9 +135,24 @@ class GraphBuilderService
                 /** @var Model $instance */
                 $instance = new $model;
 
-                $modelData = $this->inspector->inspect($model);
-                /** @var array<string, array<string, mixed>> $relationships */
-                $relationships = $this->resolver->resolve($model);
+        $data = [
+            'version' => '1.0.0',
+            'timestamp' => Carbon::now()->toIso8601String(),
+            'totalModels' => count($nodes),
+            'totalRelationships' => count($edges),
+            'warnings' => $this->warnings,
+            'options' => [
+                'json_options' => $jsonOptions,
+            ],
+            'models' => array_values($nodes),
+            'relationships' => $edges,
+            'loops' => $uniqueLoops,
+        ];
+
+        event(new ModelGraphGenerated($data));
+
+        return $data;
+    }
 
                 $nodes[] = [
                     'id' => $model,

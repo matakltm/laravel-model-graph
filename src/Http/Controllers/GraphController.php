@@ -7,18 +7,16 @@ namespace Matakltm\LaravelModelGraph\Http\Controllers;
 use Illuminate\Contracts\View\View;
 use Illuminate\Routing\Controller;
 
-/**
- * Class GraphController
- *
- * Serves the web view for the model graph SPA.
- */
 class GraphController extends Controller
 {
     /**
-     * Render the model graph SPA.
+     * Display the model graph SPA.
      */
     public function index(): View
     {
-        return view('model-graph::graph');
+        /** @var View $view */
+        $view = view('model-graph::graph');
+
+        return $view;
     }
 }

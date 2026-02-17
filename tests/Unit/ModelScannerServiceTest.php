@@ -10,12 +10,31 @@ use Tests\TestCase;
 
 uses(TestCase::class);
 
-test('it can be instantiated', function (): void {
-    $service = new ModelScannerService;
-    expect($service)->toBeInstanceOf(ModelScannerService::class);
+beforeEach(function () {
+    $this->testModelsPath = __DIR__.'/../tmp/Models';
+    if (! File::exists($this->testModelsPath)) {
+        File::makeDirectory($this->testModelsPath, 0755, true);
+    }
+
+    // Create some fake models
+    File::put($this->testModelsPath.'/User.php', "<?php namespace Tests\\tmp\\Models; class User extends \Illuminate\Database\Eloquent\Model {}");
+    File::put($this->testModelsPath.'/Post.php', "<?php namespace Tests\\tmp\\Models; class Post extends \Illuminate\Database\Eloquent\Model {}");
+
+    Config::set('model-graph.scan.models_path', $this->testModelsPath);
+
+    // Clear cache
+    Cache::forget('laravel-model-graph-models');
 });
 
-test('it scans models', function (): void {
+afterEach(function () {
+    if (File::exists(__DIR__.'/../tmp')) {
+        File::deleteDirectory(__DIR__.'/../tmp');
+    }
+});
+
+test('it respects exclude filter', function (): void {
+    Config::set('model-graph.scan.exclude', ['Tests\\tmp\\Models\\Post']);
+
     $service = new ModelScannerService;
     $models = $service->scan();
 
@@ -61,10 +80,6 @@ test('it fires ModelDiscovered events', function (): void {
 });
 
 test('it handles global namespace models', function (): void {
-    // We can't easily test global namespace models in this environment without affecting other tests
-    // but we can mock the getClassFromFile method or just rely on the implementation logic.
-    // For now, let's just test that the logic in getClassFromFile handles it.
-
     $tempFile = $this->testModelsPath.'/GlobalModel.php';
     File::put($tempFile, "<?php class GlobalModel extends \Illuminate\Database\Eloquent\Model {}");
 

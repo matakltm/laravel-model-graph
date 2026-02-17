@@ -24,7 +24,8 @@ class GenerateGraphCommand extends Command
     protected $signature = 'model-graph:generate
                             {--force : Overwrite existing file}
                             {--dry-run : Only simulate the generation}
-                            {--pretty : Pretty print the JSON output}';
+                            {--pretty : Pretty print the JSON output}
+                            {--output= : Specify a custom export path}';
 
     /**
      * The console command description.
@@ -40,10 +41,13 @@ class GenerateGraphCommand extends Command
     {
         $this->info('Generating model graph...');
 
-        /** @var string $storagePath */
-        $storagePath = Config::get('model-graph.storage_path');
+        /** @var string $exportPath */
+        $exportPath = $this->option('output') ?: Config::get('model-graph.export_path');
 
-        if (! $this->option('dry-run') && ! $this->option('force') && File::exists($storagePath) && ! $this->confirm(sprintf('File [%s] already exists. Overwrite?', $storagePath))) {
+        // Normalize path separators
+        $exportPath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $exportPath);
+
+        if (! $this->option('dry-run') && ! $this->option('force') && File::exists($exportPath) && ! $this->confirm(sprintf('File [%s] already exists. Overwrite?', $exportPath))) {
             $this->warn('Generation cancelled.');
 
             return self::SUCCESS;
@@ -82,14 +86,14 @@ class GenerateGraphCommand extends Command
             return self::SUCCESS;
         }
 
-        $directory = dirname($storagePath);
+        $directory = dirname($exportPath);
         if (! File::isDirectory($directory)) {
             File::makeDirectory($directory, 0755, true);
         }
 
-        File::put($storagePath, (string) $json);
+        File::put($exportPath, (string) $json);
 
-        $this->info('Model graph successfully generated and saved to: '.$storagePath);
+        $this->info('Model graph successfully generated and saved to: '.$exportPath);
 
         return self::SUCCESS;
     }
