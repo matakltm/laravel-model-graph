@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Laravel Model Graph</title>
-    <link rel="stylesheet" href="{{ asset('vendor/model-graph/style.css') }}">
+    <link rel="stylesheet" href="{{ route('model-graph.assets', ['file' => 'style.css']) }}">
 </head>
 <body>
     <div id="app"></div>
-    <script src="{{ asset('vendor/model-graph/app.js') }}"></script>
+    <script src="{{ route('model-graph.assets', ['file' => 'app.js']) }}"></script>
 </body>
 </html>

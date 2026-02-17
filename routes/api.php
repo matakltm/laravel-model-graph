@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -11,9 +10,11 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+use Matakltm\LaravelModelGraph\Http\Controllers\GraphApiController;
+
 Route::group([
     'prefix' => 'api/v1',
     'middleware' => config('model-graph.api_middleware', ['web']),
 ], function () {
-    // Route::get('/graph/data', [GraphApiController::class, 'data'])->name('model-graph.api.data');
+    Route::get('/graph/data', [GraphApiController::class, 'data'])->name('model-graph.api.data');
 });
