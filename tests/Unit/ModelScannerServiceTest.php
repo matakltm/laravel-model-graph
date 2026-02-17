@@ -73,7 +73,7 @@ test('it caches results and still fires events', function (): void {
 
     expect($modelsCached)->toBe($models);
     Event::assertDispatched(ModelDiscovered::class, 2);
-    Event::assertDispatched(ModelDiscovered::class, fn ($event): bool => $event->modelClass === 'Tests\\tmp\\Models\\User');
+    Event::assertDispatched(ModelDiscovered::class, fn (ModelDiscovered $event): bool => $event->modelClass === 'Tests\\tmp\\Models\\User');
 });
 
 test('it fires ModelDiscovered events', function (): void {
@@ -82,8 +82,8 @@ test('it fires ModelDiscovered events', function (): void {
     $service = new ModelScannerService;
     $service->scan();
 
-    Event::assertDispatched(ModelDiscovered::class, fn ($event): bool => $event->modelClass === 'Tests\\tmp\\Models\\User');
-    Event::assertDispatched(ModelDiscovered::class, fn ($event): bool => $event->modelClass === 'Tests\\tmp\\Models\\Post');
+    Event::assertDispatched(ModelDiscovered::class, fn (ModelDiscovered $event): bool => $event->modelClass === 'Tests\\tmp\\Models\\User');
+    Event::assertDispatched(ModelDiscovered::class, fn (ModelDiscovered $event): bool => $event->modelClass === 'Tests\\tmp\\Models\\Post');
 });
 
 test('it handles global namespace models', function (): void {
