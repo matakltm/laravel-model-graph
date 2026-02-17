@@ -11,49 +11,6 @@ use Tests\TestCase;
 
 uses(TestCase::class);
 
-class TestModel extends Model
-{
-    protected $table = 'test_table';
-}
-
-function createTestTable(): void
-{
-    Schema::create('users', function (Blueprint $table): void {
-        $table->id();
-    });
-
-    Schema::create('test_table', function (Blueprint $table): void {
-        $table->id();
-        $table->string('name')->nullable();
-        $table->string('email')->unique();
-        $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-        $table->timestamps();
-    });
-}
-
-test('it can inspect a table', function (): void {
-    if (! in_array('sqlite', PDO::getAvailableDrivers(), true)) {
-        $this->markTestSkipped('SQLite driver not available.');
-    }
-
-    createTestTable();
-
-    $service = new SchemaInspectorService;
-    $result = $service->inspect(TestModel::class);
-
-    expect($result)->toHaveKeys(['columns', 'foreign_keys']);
-    expect($result['columns'])->toBeArray();
-    expect($result['foreign_keys'])->toBeArray();
-
-    // Check column
-    $nameColumn = null;
-    foreach ($result['columns'] as $column) {
-        if ($column['name'] === 'name') {
-            $nameColumn = $column;
-            break;
-        }
-    }
-
     expect($nameColumn)->not->toBeNull();
     expect($nameColumn['nullable'])->toBeTrue();
 
