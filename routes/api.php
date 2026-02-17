@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Matakltm\LaravelModelGraph\Http\Controllers\GraphApiController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -9,8 +11,6 @@ use Illuminate\Support\Facades\Route;
 | Here is where you can register API routes for your package.
 |
 */
-
-use Matakltm\LaravelModelGraph\Http\Controllers\GraphApiController;
 
 Route::group([
     'prefix' => 'api/v1',
