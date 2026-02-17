@@ -129,13 +129,10 @@ return [
     |
     */
     'scan' => [
-        'models_paths' => [
-            app_path('Models'),
-        ],
-        'ignore_models' => [],
-        'include_only' => [],
-        'use_reflection' => true,
-        'use_schema_inspection' => true,
+        'models_path' => env('MODEL_GRAPH_MODELS_PATH', app_path('Models')),
+        'use_reflection' => (bool) env('MODEL_GRAPH_USE_REFLECTION', true),
+        'use_schema_inspection' => (bool) env('MODEL_GRAPH_USE_SCHEMA_INSPECTION', true),
+        'fake_schema' => (bool) env('MODEL_GRAPH_FAKE_SCHEMA', false),
     ],
 
     /*
