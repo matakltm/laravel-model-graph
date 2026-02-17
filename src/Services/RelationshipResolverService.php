@@ -20,6 +20,11 @@ class RelationshipResolverService
     private array $modelInstances = [];
 
     /**
+     * @var array<string, array<string, mixed>>
+     */
+    private array $cache = [];
+
+    /**
      * Resolve relationships for a given model.
      *
      * @return array<int, array<string, mixed>>

@@ -31,11 +31,32 @@ class GraphBuilderService
     ) {}
 
     /**
+     * GraphBuilderService constructor.
+     */
+    public function __construct(
+        protected ModelScannerService $scanner,
+        protected RelationshipResolverService $resolver,
+        protected SchemaInspectorService $inspector
+    ) {}
+
+    /**
+     * Get the list of models from the scanner.
+     *
+     * @return array<int, string>
+     */
+    public function getModels(): array
+    {
+        return $this->scanner->scan();
+    }
+
+    /**
      * Generate the model graph data.
      *
+     * @param  array<int, string>|null  $models
+     * @param  (callable(string): void)|null  $onProgress
      * @return array<string, mixed>
      */
-    public function generate(): array
+    public function generate(?array $models = null, ?callable $onProgress = null): array
     {
         $this->warnings = [];
         $models = $this->modelScanner->scan();
