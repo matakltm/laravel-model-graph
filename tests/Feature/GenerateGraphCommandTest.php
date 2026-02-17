@@ -8,7 +8,7 @@ use Tests\TestCase;
 uses(TestCase::class);
 
 beforeEach(function (): void {
-    $this->exportPath = storage_path('app/laravel-model-graph-test.json');
+    $this->exportPath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, storage_path('app/laravel-model-graph-test.json'));
     Config::set('model-graph.export_path', $this->exportPath);
 
     if (File::exists($this->exportPath)) {
@@ -72,7 +72,7 @@ test('command overwrites file if force is set', function (): void {
 });
 
 test('command respects output option', function (): void {
-    $customPath = storage_path('app/custom-graph.json');
+    $customPath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, storage_path('app/custom-graph.json'));
     if (File::exists($customPath)) {
         File::delete($customPath);
     }

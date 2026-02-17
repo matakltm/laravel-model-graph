@@ -44,6 +44,9 @@ class GenerateGraphCommand extends Command
         /** @var string $exportPath */
         $exportPath = $this->option('output') ?: Config::get('model-graph.export_path');
 
+        // Normalize path separators
+        $exportPath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $exportPath);
+
         if (! $this->option('dry-run') && ! $this->option('force') && File::exists($exportPath) && ! $this->confirm(sprintf('File [%s] already exists. Overwrite?', $exportPath))) {
             $this->warn('Generation cancelled.');
 
