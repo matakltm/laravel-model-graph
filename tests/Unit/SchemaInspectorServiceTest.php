@@ -40,7 +40,10 @@ test('it inspects model correctly', function (): void {
         'name',
         'email',
     ];
-}
+
+    expect($result['fillable'])->toContain('name');
+    expect($result['fillable'])->toContain('email');
+});
 
 test('it can be instantiated', function (): void {
     $service = new SchemaInspectorService;

@@ -128,32 +128,34 @@ class GraphBuilderService
             try {
                 $reflection = new ReflectionClass($model);
 
-                if (! $reflection->isSubclassOf(Model::class)) {
-                    continue;
-                }
+                    if (! $reflection->isSubclassOf(Model::class)) {
+                        continue;
+                    }
 
-                /** @var Model $instance */
-                $instance = new $model;
+                    /** @var Model $instance */
+                    $instance = new $model;
 
-        $data = [
-            'version' => '1.0.0',
-            'timestamp' => Carbon::now()->toIso8601String(),
-            'totalModels' => count($nodes),
-            'totalRelationships' => count($edges),
-            'warnings' => $this->warnings,
-            'options' => [
-                'json_options' => $jsonOptions,
-            ],
-            'models' => array_values($nodes),
-            'relationships' => $edges,
-            'loops' => $uniqueLoops,
-        ];
+            $data = [
+                'version' => '1.0.0',
+                'timestamp' => Carbon::now()->toIso8601String(),
+                'totalModels' => count($nodes),
+                'totalRelationships' => count($edges),
+                'warnings' => $this->warnings,
+                'options' => [
+                    'json_options' => $jsonOptions,
+                ],
+                'models' => array_values($nodes),
+                'relationships' => $edges,
+                'loops' => $uniqueLoops,
+            ];
 
-        event(new ModelGraphGenerated($data));
+            event(new ModelGraphGenerated($data));
 
-        return $data;
-    }
-
+            return $data;
+        } catch (\Throwable $e) {
+            $this->warnings[] = sprintf('Error inspecting model %s: ', $model).$e->getMessage();
+        }
+        try {
                 $nodes[] = [
                     'id' => $model,
                     'name' => $reflection->getShortName(),
