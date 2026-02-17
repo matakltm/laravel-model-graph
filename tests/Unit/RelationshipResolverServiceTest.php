@@ -18,6 +18,63 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Matakltm\LaravelModelGraph\Services\RelationshipResolverService;
 use Tests\TestCase;
 
+class RelatedModel extends Model {}
+class ThroughModel extends Model {}
+
+class MockModel extends Model
+{
+    public function hasOneRelation(): HasOne
+    {
+        return $this->hasOne(RelatedModel::class, 'foreign_key', 'local_key');
+    }
+
+    public function hasManyRelation(): HasMany
+    {
+        return $this->hasMany(RelatedModel::class, 'foreign_key', 'local_key');
+    }
+
+    public function belongsToRelation(): BelongsTo
+    {
+        return $this->belongsTo(RelatedModel::class, 'foreign_key', 'owner_key');
+    }
+
+    public function belongsToManyRelation(): BelongsToMany
+    {
+        return $this->belongsToMany(RelatedModel::class, 'pivot_table', 'foreign_pivot_key', 'related_pivot_key')
+            ->withPivot('column1', 'column2');
+    }
+
+    public function hasOneThroughRelation(): HasOneThrough
+    {
+        return $this->hasOneThrough(RelatedModel::class, ThroughModel::class, 'first_key', 'second_key', 'local_key', 'second_local_key');
+    }
+
+    public function hasManyThroughRelation(): HasManyThrough
+    {
+        return $this->hasManyThrough(RelatedModel::class, ThroughModel::class, 'first_key', 'second_key', 'local_key', 'second_local_key');
+    }
+
+    public function morphOneRelation(): MorphOne
+    {
+        return $this->morphOne(RelatedModel::class, 'morphable');
+    }
+
+    public function morphManyRelation(): MorphMany
+    {
+        return $this->morphMany(RelatedModel::class, 'morphable');
+    }
+
+    public function morphToRelation(): MorphTo
+    {
+        return $this->morphTo('morph_to_relation', 'morph_to_relation_type', 'morph_to_relation_id');
+    }
+
+    public function morphToManyRelation(): MorphToMany
+    {
+        return $this->morphToMany(RelatedModel::class, 'taggable');
+    }
+}
+
 uses(TestCase::class);
 
 test('it can be instantiated', function (): void {
@@ -33,91 +90,62 @@ test('it resolves all relationship types correctly', function (): void {
         ->toHaveCount(10);
 
     expect($relationships['hasOneRelation'])->toMatchArray([
-        'name' => 'hasOneRelation',
+        'method' => 'hasOneRelation',
         'type' => 'HasOne',
-        'related' => RelatedModel::class,
-        'foreign_key' => 'foreign_key',
-        'local_key' => 'local_key',
+        'target' => RelatedModel::class,
     ]);
 
     expect($relationships['hasManyRelation'])->toMatchArray([
-        'name' => 'hasManyRelation',
+        'method' => 'hasManyRelation',
         'type' => 'HasMany',
-        'related' => RelatedModel::class,
-        'foreign_key' => 'foreign_key',
-        'local_key' => 'local_key',
+        'target' => RelatedModel::class,
     ]);
 
     expect($relationships['belongsToRelation'])->toMatchArray([
-        'name' => 'belongsToRelation',
+        'method' => 'belongsToRelation',
         'type' => 'BelongsTo',
-        'related' => RelatedModel::class,
-        'foreign_key' => 'foreign_key',
-        'owner_key' => 'owner_key',
+        'target' => RelatedModel::class,
     ]);
 
     expect($relationships['belongsToManyRelation'])->toMatchArray([
-        'name' => 'belongsToManyRelation',
+        'method' => 'belongsToManyRelation',
         'type' => 'BelongsToMany',
-        'related' => RelatedModel::class,
-        'pivot_table' => 'pivot_table',
-        'foreign_pivot_key' => 'foreign_pivot_key',
-        'related_pivot_key' => 'related_pivot_key',
-        'pivot_columns' => ['column1', 'column2'],
+        'target' => RelatedModel::class,
     ]);
 
     expect($relationships['hasOneThroughRelation'])->toMatchArray([
-        'name' => 'hasOneThroughRelation',
+        'method' => 'hasOneThroughRelation',
         'type' => 'HasOneThrough',
-        'related' => RelatedModel::class,
-        'through_model' => ThroughModel::class,
-        'first_key' => 'first_key',
-        'second_key' => 'second_key',
-        'local_key' => 'local_key',
-        'second_local_key' => 'second_local_key',
+        'target' => RelatedModel::class,
     ]);
 
     expect($relationships['hasManyThroughRelation'])->toMatchArray([
-        'name' => 'hasManyThroughRelation',
+        'method' => 'hasManyThroughRelation',
         'type' => 'HasManyThrough',
-        'related' => RelatedModel::class,
-        'through_model' => ThroughModel::class,
-        'first_key' => 'first_key',
-        'second_key' => 'second_key',
-        'local_key' => 'local_key',
-        'second_local_key' => 'second_local_key',
+        'target' => RelatedModel::class,
     ]);
 
     expect($relationships['morphOneRelation'])->toMatchArray([
-        'name' => 'morphOneRelation',
+        'method' => 'morphOneRelation',
         'type' => 'MorphOne',
-        'related' => RelatedModel::class,
-        'foreign_key' => 'morphable_id',
-        'local_key' => 'id',
-        'morph_type' => 'morphable_type',
+        'target' => RelatedModel::class,
     ]);
 
     expect($relationships['morphManyRelation'])->toMatchArray([
-        'name' => 'morphManyRelation',
+        'method' => 'morphManyRelation',
         'type' => 'MorphMany',
-        'related' => RelatedModel::class,
-        'foreign_key' => 'morphable_id',
-        'local_key' => 'id',
-        'morph_type' => 'morphable_type',
+        'target' => RelatedModel::class,
     ]);
 
     expect($relationships['morphToRelation'])->toMatchArray([
-        'name' => 'morphToRelation',
+        'method' => 'morphToRelation',
         'type' => 'MorphTo',
-        'morph_type' => 'morph_to_relation_type',
-        'foreign_key' => 'morph_to_relation_id',
     ]);
 
     expect($relationships['morphToManyRelation'])->toMatchArray([
-        'name' => 'morphToManyRelation',
+        'method' => 'morphToManyRelation',
         'type' => 'MorphToMany',
-        'related' => RelatedModel::class,
-        'morph_type' => 'taggable_type',
+        'target' => RelatedModel::class,
     ]);
 });
 

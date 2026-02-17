@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Matakltm\LaravelModelGraph\Http\Controllers;
 
+use Illuminate\Contracts\View\View;
 use Illuminate\Routing\Controller;
-use Illuminate\View\View;
 
 class GraphController extends Controller
 {
@@ -14,6 +14,9 @@ class GraphController extends Controller
      */
     public function index(): View
     {
-        return view('model-graph::graph');
+        /** @var View $view */
+        $view = view('model-graph::graph');
+
+        return $view;
     }
 }

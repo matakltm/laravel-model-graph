@@ -71,7 +71,10 @@ return [
     | The path where the generated graph JSON file will be exported.
     |
     */
-    'export_path' => env('MODEL_GRAPH_EXPORT_PATH', storage_path('app/laravel-model-graph.json')),
+    'export_path' => env('MODEL_GRAPH_EXPORT_PATH', env('MODEL_GRAPH_STORAGE_PATH', storage_path('app/laravel-model-graph.json'))),
+
+    /** @deprecated Use export_path instead */
+    'storage_path' => env('MODEL_GRAPH_STORAGE_PATH', storage_path('app/laravel-model-graph.json')),
 
     /*
     |--------------------------------------------------------------------------

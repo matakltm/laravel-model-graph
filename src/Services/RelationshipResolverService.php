@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Matakltm\LaravelModelGraph\Services;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use ReflectionClass;
 use ReflectionMethod;
@@ -16,23 +17,27 @@ use ReflectionNamedType;
  */
 class RelationshipResolverService
 {
-    /** @var array<string, \Illuminate\Database\Eloquent\Model> */
+    /** @var array<string, Model> */
     private array $modelInstances = [];
 
     /**
-     * @var array<string, array<string, mixed>>
+     * @var array<string, array<string, array<string, mixed>>>
      */
     private array $cache = [];
 
     /**
      * Resolve relationships for a given model.
      *
-     * @return array<int, array<string, mixed>>
+     * @return array<string, array<string, mixed>>
      */
     public function resolve(string $model): array
     {
-        if (! class_exists($model)) {
+        if (! class_exists($model) || ! is_subclass_of($model, Model::class)) {
             return [];
+        }
+
+        if (isset($this->cache[$model])) {
+            return $this->cache[$model];
         }
 
         $reflection = new ReflectionClass($model);
@@ -46,7 +51,7 @@ class RelationshipResolverService
 
             // Skip methods from base Model class and other common traits/classes if needed
             $declaringClass = $method->getDeclaringClass()->getName();
-            if ($declaringClass === \Illuminate\Database\Eloquent\Model::class ||
+            if ($declaringClass === Model::class ||
                 str_starts_with($declaringClass, 'Illuminate\\')) {
                 continue;
             }
@@ -67,7 +72,7 @@ class RelationshipResolverService
                 }
 
                 if ($isRelation) {
-                    $relationships[] = $this->extractRelationshipData($model, $method);
+                    $relationships[$method->getName()] = $this->extractRelationshipData($model, $method);
                 }
             } catch (\Throwable) {
                 // Skip if error occurs during invocation
@@ -75,16 +80,20 @@ class RelationshipResolverService
             }
         }
 
+        $this->cache[$model] = $relationships;
+
         return $relationships;
     }
 
     /**
      * Get a cached instance of the model.
+     *
+     * @param  class-string<Model>  $model
      */
-    private function getModelInstance(string $model): \Illuminate\Database\Eloquent\Model
+    private function getModelInstance(string $model): Model
     {
         if (! isset($this->modelInstances[$model])) {
-            /** @var \Illuminate\Database\Eloquent\Model $instance */
+            /** @var Model $instance */
             $instance = new $model;
             $this->modelInstances[$model] = $instance;
         }
@@ -95,19 +104,29 @@ class RelationshipResolverService
     /**
      * Extract relationship data.
      *
+     * @param  class-string<Model>  $model
      * @return array<string, mixed>
      */
     private function extractRelationshipData(string $model, ReflectionMethod $method): array
     {
         $instance = $this->getModelInstance($model);
 
-        /** @var Relation<\Illuminate\Database\Eloquent\Model, \Illuminate\Database\Eloquent\Model, mixed> $relation */
+        /** @var Relation<Model, Model, mixed> $relation */
         $relation = $method->invoke($instance);
+
+        $type = (new ReflectionClass($relation))->getShortName();
+        $target = null;
+
+        try {
+            $target = get_class($relation->getRelated());
+        } catch (\Throwable) {
+            // For MorphTo, related might not be available if not loaded
+        }
 
         return [
             'method' => $method->getName(),
-            'type' => (new ReflectionClass($relation))->getShortName(),
-            'target' => get_class($relation->getRelated()),
+            'type' => $type,
+            'target' => $target,
             'metadata' => [
                 'foreign_key' => $this->getForeignKey($relation),
                 'owner_key' => $this->getOwnerKey($relation),
@@ -118,7 +137,7 @@ class RelationshipResolverService
     /**
      * Get foreign key from relation if possible.
      *
-     * @param  Relation<\Illuminate\Database\Eloquent\Model, \Illuminate\Database\Eloquent\Model, mixed>  $relation
+     * @param  Relation<Model, Model, mixed>  $relation
      */
     private function getForeignKey(Relation $relation): ?string
     {
@@ -135,7 +154,7 @@ class RelationshipResolverService
     /**
      * Get owner key from relation if possible.
      *
-     * @param  Relation<\Illuminate\Database\Eloquent\Model, \Illuminate\Database\Eloquent\Model, mixed>  $relation
+     * @param  Relation<Model, Model, mixed>  $relation
      */
     private function getOwnerKey(Relation $relation): ?string
     {

@@ -20,7 +20,7 @@ class ModelGraphGenerated
     /**
      * Create a new event instance.
      *
-     * @param array<string, mixed> $data The generated graph data.
+     * @param  array<string, mixed>  $data  The generated graph data.
      */
     public function __construct(public array $data) {}
 }

@@ -20,13 +20,19 @@ class GraphApiController extends Controller
         /** @var array<string, mixed> $cacheConfig */
         $cacheConfig = Config::get('model-graph.cache', []);
 
-        $cacheEnabled = (bool) ($cacheConfig['enabled'] ?? true);
-        $cacheKey = (string) ($cacheConfig['key'] ?? 'laravel-model-graph-data');
-        $cacheTtl = (int) ($cacheConfig['ttl'] ?? 3600);
+        /** @var bool $cacheEnabled */
+        $cacheEnabled = $cacheConfig['enabled'] ?? true;
+
+        /** @var string $cacheKey */
+        $cacheKey = $cacheConfig['key'] ?? 'laravel-model-graph-data';
+
+        /** @var int $cacheTtl */
+        $cacheTtl = $cacheConfig['ttl'] ?? 3600;
 
         if ($cacheEnabled && Cache::has($cacheKey)) {
             /** @var array<string, mixed> $cachedData */
             $cachedData = Cache::get($cacheKey);
+
             return response()->json($cachedData);
         }
 

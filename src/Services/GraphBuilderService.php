@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Matakltm\LaravelModelGraph\Services;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Matakltm\LaravelModelGraph\Events\ModelGraphGenerated;
@@ -37,7 +38,7 @@ class GraphBuilderService
     /**
      * Get the list of models from the scanner.
      *
-     * @return array<int, string>
+     * @return array<int, class-string<Model>>
      */
     public function getModels(): array
     {
@@ -47,7 +48,7 @@ class GraphBuilderService
     /**
      * Generate the model graph data.
      *
-     * @param  array<int, string>|null  $models
+     * @param  array<int, class-string<Model>>|null  $models
      * @param  (callable(string): void)|null  $onProgress
      * @return array<string, mixed>
      */
@@ -89,7 +90,7 @@ class GraphBuilderService
             try {
                 $relationships = $this->relationshipResolver->resolve($modelClass);
                 foreach ($relationships as $rel) {
-                    /** @var string $targetClass */
+                    /** @var string|null $targetClass */
                     $targetClass = $rel['target'];
 
                     /** @var string $type */
@@ -105,7 +106,9 @@ class GraphBuilderService
                         'cardinality' => $this->getCardinality($type),
                     ];
 
-                    $graph[$modelClass][] = $targetClass;
+                    if ($targetClass) {
+                        $graph[$modelClass][] = $targetClass;
+                    }
                 }
             } catch (\Throwable $e) {
                 $this->warnings[] = "Error resolving relationships for {$modelClass}: ".$e->getMessage();
