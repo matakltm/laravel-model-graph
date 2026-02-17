@@ -12,10 +12,19 @@ uses(TestCase::class);
 class TestModel extends Model
 {
     protected $table = 'test_models';
+
+    protected $fillable = [
+        'name',
+        'email',
+    ];
 }
 
 test('it inspects model correctly', function (): void {
-    Schema::create('test_models', function (Blueprint $table) {
+    if (! extension_loaded('pdo_sqlite')) {
+        $this->markTestSkipped('SQLite extension not loaded.');
+    }
+
+    Schema::create('test_models', function (Illuminate\Database\Schema\Blueprint $table): void {
         $table->id();
         $table->string('name')->nullable();
         $table->string('email')->unique();
@@ -36,11 +45,6 @@ test('it inspects model correctly', function (): void {
     expect($nameColumn)->not->toBeNull();
     expect($nameColumn['nullable'])->toBeTrue();
 
-    protected $fillable = [
-        'name',
-        'email',
-    ];
-
     expect($result['fillable'])->toContain('name');
     expect($result['fillable'])->toContain('email');
 });
@@ -51,6 +55,17 @@ test('it can be instantiated', function (): void {
 });
 
 test('it inspects a model', function (): void {
+    if (! extension_loaded('pdo_sqlite')) {
+        $this->markTestSkipped('SQLite extension not loaded.');
+    }
+
+    Schema::create('test_models', function (Illuminate\Database\Schema\Blueprint $table): void {
+        $table->id();
+        $table->string('name')->nullable();
+        $table->string('email')->unique();
+        $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+    });
+
     $service = new SchemaInspectorService;
     $result = $service->inspect(TestModel::class);
 
@@ -58,7 +73,7 @@ test('it inspects a model', function (): void {
     expect($result['foreign_keys'])->not->toBeEmpty();
 
     // Check column
-    $nameColumn = null;
+    $emailColumn = null;
     foreach ($result['columns'] as $column) {
         if ($column['name'] === 'email') {
             $emailColumn = $column;
