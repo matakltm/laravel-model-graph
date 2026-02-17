@@ -44,7 +44,7 @@ test('it returns 404 for missing assets', function (): void {
 });
 
 test('it prevents path traversal', function (): void {
-    // Try to access the .env file (if it exists) or just something outside resources/dist
+    // Try to access something outside resources/dist
     $response = $this->get('/graph/assets/../composer.json');
 
     $response->assertStatus(404);
