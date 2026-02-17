@@ -10,7 +10,7 @@ use Tests\TestCase;
 
 uses(TestCase::class);
 
-beforeEach(function () {
+beforeEach(function (): void {
     $this->testModelsPath = __DIR__.'/../tmp/Models';
     if (! File::exists($this->testModelsPath)) {
         File::makeDirectory($this->testModelsPath, 0755, true);
@@ -26,7 +26,7 @@ beforeEach(function () {
     Cache::forget('laravel-model-graph-models');
 });
 
-afterEach(function () {
+afterEach(function (): void {
     if (File::exists(__DIR__.'/../tmp')) {
         File::deleteDirectory(__DIR__.'/../tmp');
     }

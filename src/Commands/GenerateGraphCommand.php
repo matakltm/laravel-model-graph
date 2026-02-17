@@ -60,15 +60,20 @@ class GenerateGraphCommand extends Command
             $this->warn('No models found to process.');
         }
 
-        $bar = $this->output->createProgressBar($totalModels);
-        $bar->start();
+        $bar = null;
+        if (! $this->laravel->runningUnitTests()) {
+            $bar = $this->output->createProgressBar($totalModels);
+            $bar->start();
+        }
 
         $data = $builder->generate($models, function () use ($bar): void {
-            $bar->advance();
+            $bar?->advance();
         });
 
-        $bar->finish();
-        $this->newLine();
+        if ($bar !== null) {
+            $bar->finish();
+            $this->newLine();
+        }
 
         /** @var int $jsonOptions */
         $jsonOptions = Config::get('model-graph.json_options', JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

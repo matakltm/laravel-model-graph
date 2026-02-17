@@ -12,6 +12,7 @@ return RectorConfig::configure()
     ])
     ->withSkip([
         AddOverrideAttributeToOverriddenMethodsRector::class,
+        \Rector\Php84\Rector\MethodCall\NewMethodCallWithoutParenthesesRector::class,
     ])
     ->withPreparedSets(
         deadCode: true,

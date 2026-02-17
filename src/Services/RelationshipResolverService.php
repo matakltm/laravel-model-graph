@@ -51,8 +51,11 @@ class RelationshipResolverService
 
             // Skip methods from base Model class and other common traits/classes if needed
             $declaringClass = $method->getDeclaringClass()->getName();
-            if ($declaringClass === Model::class ||
-                str_starts_with($declaringClass, 'Illuminate\\')) {
+            if ($declaringClass === Model::class) {
+                continue;
+            }
+
+            if (str_starts_with($declaringClass, 'Illuminate\\')) {
                 continue;
             }
 
@@ -118,7 +121,7 @@ class RelationshipResolverService
         $target = null;
 
         try {
-            $target = get_class($relation->getRelated());
+            $target = $relation->getRelated()::class;
         } catch (\Throwable) {
             // For MorphTo, related might not be available if not loaded
         }

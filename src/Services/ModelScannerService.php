@@ -66,7 +66,11 @@ class ModelScannerService
                 continue;
             }
 
-            if (! class_exists($fullClassName) || ! is_subclass_of($fullClassName, Model::class)) {
+            if (! class_exists($fullClassName)) {
+                continue;
+            }
+
+            if (! is_subclass_of($fullClassName, Model::class)) {
                 continue;
             }
 

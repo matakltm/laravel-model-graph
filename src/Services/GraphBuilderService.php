@@ -6,8 +6,10 @@ namespace Matakltm\LaravelModelGraph\Services;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Config;
 use Matakltm\LaravelModelGraph\Events\ModelGraphGenerated;
+use Throwable;
 
 /**
  * Class GraphBuilderService
@@ -17,10 +19,10 @@ use Matakltm\LaravelModelGraph\Events\ModelGraphGenerated;
  */
 class GraphBuilderService
 {
-    /** @var array<class-string<\Illuminate\Database\Eloquent\Model>, bool> */
+    /** @var array<string, bool> */
     private array $recursionStack = [];
 
-    /** @var array<int, array<int, class-string<\Illuminate\Database\Eloquent\Model>>> */
+    /** @var array<int, array<int, string>> */
     private array $loops = [];
 
     /** @var array<int, string> */
@@ -48,144 +50,71 @@ class GraphBuilderService
     /**
      * Generate the model graph data.
      *
-     * @param  array<int, class-string<Model>>|null  $models
+     * @param  array<int, string>|null  $models
      * @param  (callable(string): void)|null  $onProgress
      * @return array<string, mixed>
      */
     public function generate(?array $models = null, ?callable $onProgress = null): array
     {
         $this->warnings = [];
+        $this->loops = [];
+        $this->recursionStack = [];
+
         $models ??= $this->modelScanner->scan();
         $nodes = [];
         $edges = [];
-        /** @var array<class-string<\Illuminate\Database\Eloquent\Model>, array<int, class-string<\Illuminate\Database\Eloquent\Model>>> $graph */
+        /** @var array<string, array<int, string>> $graph */
         $graph = [];
 
         foreach ($models as $modelClass) {
-            if ($onProgress) {
+            if ($onProgress !== null) {
                 $onProgress($modelClass);
             }
 
+            $inspection = [];
             try {
                 $inspection = $this->schemaInspector->inspect($modelClass);
-
-                $nodes[$modelClass] = [
-                    'name' => class_basename($modelClass),
-                    'namespace' => $modelClass,
-                    'fillable' => $inspection['fillable'] ?? [],
-                    'inLoops' => false,
-                    'loopSeverity' => 0,
-                ];
-            } catch (\Throwable $e) {
-                $this->warnings[] = sprintf('Error inspecting model %s: ', $modelClass).$e->getMessage();
-                // Still add the node but with limited info
-                $nodes[$modelClass] = [
-                    'name' => class_basename($modelClass),
-                    'namespace' => $modelClass,
-                    'fillable' => [],
-                    'inLoops' => false,
-                    'loopSeverity' => 0,
-                ];
+            } catch (Throwable $e) {
+                $this->warnings[] = sprintf('Error inspecting model %s: %s', $modelClass, $e->getMessage());
             }
 
+            $relationships = [];
             try {
                 $relationships = $this->relationshipResolver->resolve($modelClass);
-                foreach ($relationships as $rel) {
-                    /** @var string|null $targetClass */
-                    $targetClass = $rel['target'];
-
-                    /** @var string $type */
-                    $type = $rel['type'];
-
-                    $edges[] = [
-                        'source' => $modelClass,
-                        'target' => $targetClass,
-                        'type' => $type,
-                        'method' => $rel['method'],
-                        'metadata' => $rel['metadata'] ?? [],
-                        'direction' => $this->getDirection($type),
-                        'cardinality' => $this->getCardinality($type),
-                    ];
-
-                    if ($targetClass) {
-                        $graph[$modelClass][] = $targetClass;
-                    }
-                }
-            } catch (\Throwable $e) {
-                $this->warnings[] = sprintf('Error resolving relationships for %s: ', $modelClass).$e->getMessage();
-            }
-        }
-
-        $nodes = [];
-        $edges = [];
-
-        foreach ($models as $model) {
-            /** @var class-string<Model> $model */
-            if (! class_exists($model)) {
-                continue;
+            } catch (Throwable $e) {
+                $this->warnings[] = sprintf('Error resolving relationships for %s: %s', $modelClass, $e->getMessage());
             }
 
-            try {
-                $reflection = new ReflectionClass($model);
-
-                    if (! $reflection->isSubclassOf(Model::class)) {
-                        continue;
-                    }
-
-                    /** @var Model $instance */
-                    $instance = new $model;
-
-            $data = [
-                'version' => '1.0.0',
-                'timestamp' => Carbon::now()->toIso8601String(),
-                'totalModels' => count($nodes),
-                'totalRelationships' => count($edges),
-                'warnings' => $this->warnings,
-                'options' => [
-                    'json_options' => $jsonOptions,
-                ],
-                'models' => array_values($nodes),
-                'relationships' => $edges,
-                'loops' => $uniqueLoops,
+            $nodes[$modelClass] = [
+                'id' => $modelClass,
+                'name' => class_basename($modelClass),
+                'namespace' => $modelClass,
+                'table' => $inspection['table'] ?? $this->guessTable($modelClass),
+                'columns' => $inspection['columns'] ?? [],
+                'fillable' => $inspection['fillable'] ?? [],
+                'relationships_count' => count($relationships),
+                'inLoops' => false,
+                'loopSeverity' => 0,
             ];
 
-            event(new ModelGraphGenerated($data));
+            foreach ($relationships as $relName => $relData) {
+                /** @var string|null $targetClass */
+                $targetClass = $relData['target'] ?? null;
 
-            return $data;
-        } catch (\Throwable $e) {
-            $this->warnings[] = sprintf('Error inspecting model %s: ', $model).$e->getMessage();
-        }
-        try {
-                $nodes[] = [
-                    'id' => $model,
-                    'name' => $reflection->getShortName(),
-                    'table' => $instance->getTable(),
-                    'columns' => $modelData['columns'] ?? [],
-                    'relationships_count' => count($relationships),
-                ];
-
-                foreach ($relationships as $relName => $relData) {
-                    /** @var class-string $relatedModel */
-                    $relatedModel = $relData['related'];
-
-                    if (! class_exists($relatedModel)) {
-                        continue;
-                    }
-
-                    $relatedReflection = new ReflectionClass($relatedModel);
-
+                if ($targetClass !== null) {
                     $edges[] = [
-                        'id' => strtolower($reflection->getShortName().'_'.$relName.'_'.$relatedReflection->getShortName()),
-                        'source' => $model,
-                        'target' => $relatedModel,
-                        'type' => $relData['type'],
+                        'id' => strtolower(class_basename($modelClass).'_'.$relName.'_'.class_basename($targetClass)),
+                        'source' => $modelClass,
+                        'target' => $targetClass,
+                        'type' => $relData['type'] ?? 'Unknown',
                         'label' => $relName,
-                        'metadata' => $relData,
+                        'metadata' => $relData['metadata'] ?? [],
                     ];
+
+                    $graph[$modelClass][] = $targetClass;
                 }
-            } catch (Throwable) {
-                continue;
             }
+        }
 
         /** @var int $maxDepth */
         $maxDepth = Config::get('model-graph.relationships.max_depth', 5);
@@ -193,14 +122,66 @@ class GraphBuilderService
         foreach (array_keys($graph) as $node) {
             $this->dfs($node, $graph, [], 0, $maxDepth);
         }
+
+        $uniqueLoops = $this->getUniqueLoops();
+
+        foreach ($uniqueLoops as $loop) {
+            foreach ($loop as $nodeId) {
+                if (isset($nodes[$nodeId])) {
+                    $nodes[$nodeId]['inLoops'] = true;
+                    $nodes[$nodeId]['loopSeverity']++;
+                }
+            }
+        }
+
+        /** @var int $jsonOptions */
+        $jsonOptions = Config::get('model-graph.json_options', JSON_PRETTY_PRINT);
+
+        $data = [
+            'version' => '1.0.0',
+            'timestamp' => Carbon::now()->toIso8601String(),
+            'totalModels' => count($nodes),
+            'totalRelationships' => count($edges),
+            'warnings' => $this->warnings,
+            'options' => [
+                'json_options' => $jsonOptions,
+            ],
+            'models' => array_values($nodes),
+            'relationships' => $edges,
+            'loops' => $uniqueLoops,
+            'meta' => [
+                'generated_at' => Carbon::now()->toIso8601String(),
+                'environment' => App::environment(),
+                'model_count' => count($nodes),
+                'relationship_count' => count($edges),
+            ],
+        ];
+
+        event(new ModelGraphGenerated($data));
+
+        return $data;
+    }
+
+    /**
+     * Guess table name if not provided.
+     */
+    private function guessTable(string $modelClass): string
+    {
+        if (class_exists($modelClass)) {
+            /** @var Model $instance */
+            $instance = new $modelClass;
+
+            return $instance->getTable();
+        }
+
+        return strtolower(class_basename($modelClass)).'s';
     }
 
     /**
      * Depth-First Search to find cycles.
      *
-     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $node
-     * @param  array<class-string<\Illuminate\Database\Eloquent\Model>, array<int, class-string<\Illuminate\Database\Eloquent\Model>>>  $graph
-     * @param  array<int, class-string<\Illuminate\Database\Eloquent\Model>>  $path
+     * @param  array<string, array<int, string>>  $graph
+     * @param  array<int, string>  $path
      */
     private function dfs(string $node, array $graph, array $path, int $depth, int $maxDepth): void
     {
@@ -216,7 +197,7 @@ class GraphBuilderService
                 if (isset($this->recursionStack[$neighbor])) {
                     $loopStartIdx = array_search($neighbor, $path, true);
                     if ($loopStartIdx !== false) {
-                        /** @var array<int, class-string<\Illuminate\Database\Eloquent\Model>> $loop */
+                        /** @var array<int, string> $loop */
                         $loop = array_slice($path, (int) $loopStartIdx);
                         $this->loops[] = $loop;
                     }
@@ -249,15 +230,6 @@ class GraphBuilderService
             }
         }
 
-        return [
-            'meta' => [
-                'generated_at' => Carbon::now()->toIso8601String(),
-                'environment' => App::environment(),
-                'model_count' => count($nodes),
-                'relationship_count' => count($edges),
-            ],
-            'nodes' => $nodes,
-            'edges' => $edges,
-        ];
+        return $unique;
     }
 }

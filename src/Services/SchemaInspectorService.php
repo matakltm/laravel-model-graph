@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Matakltm\LaravelModelGraph\Services;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -78,11 +79,9 @@ class SchemaInspectorService
         /** @var array<int, array{name: string, columns: string[], type: string, unique: bool}> $indexes */
         $indexes = Schema::getIndexes($table);
 
-        return array_map(function ($column) use ($indexes) {
+        return array_map(function (array $column) use ($indexes): array {
             /** @var array<string, mixed> $column */
-            $columnIndexes = array_filter($indexes, function ($index) use ($column) {
-                return in_array($column['name'], $index['columns'], true);
-            });
+            $columnIndexes = array_filter($indexes, fn (array $index): bool => in_array($column['name'], $index['columns'], true));
 
             return array_merge($column, [
                 'indexes' => array_values($columnIndexes),
