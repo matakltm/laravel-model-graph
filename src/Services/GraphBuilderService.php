@@ -18,35 +18,95 @@ use Throwable;
  */
 class GraphBuilderService
 {
-    /**
-     * GraphBuilderService constructor.
-     */
+    /** @var array<class-string<\Illuminate\Database\Eloquent\Model>, bool> */
+    private array $recursionStack = [];
+
+    /** @var array<int, array<int, class-string<\Illuminate\Database\Eloquent\Model>>> */
+    private array $loops = [];
+
+    /** @var array<int, string> */
+    private array $warnings = [];
+
     public function __construct(
-        protected ModelScannerService $scanner,
-        protected RelationshipResolverService $resolver,
-        protected SchemaInspectorService $inspector
+        protected ModelScannerService $modelScanner,
+        protected RelationshipResolverService $relationshipResolver,
+        protected SchemaInspectorService $schemaInspector
     ) {}
 
     /**
      * Get the list of models from the scanner.
      *
-     * @return array<int, string>
+     * @return array<int, class-string<\Illuminate\Database\Eloquent\Model>>
      */
     public function getModels(): array
     {
-        return $this->scanner->scan();
+        return $this->modelScanner->scan();
     }
 
     /**
      * Generate the model graph data.
      *
-     * @param  array<int, string>|null  $models
+     * @param  array<int, class-string<\Illuminate\Database\Eloquent\Model>>|null  $models
      * @param  (callable(string): void)|null  $onProgress
      * @return array<string, mixed>
      */
     public function generate(?array $models = null, ?callable $onProgress = null): array
     {
-        $models ??= $this->getModels();
+        $this->warnings = [];
+        $models ??= $this->modelScanner->scan();
+        $nodes = [];
+        $edges = [];
+        /** @var array<class-string<\Illuminate\Database\Eloquent\Model>, array<int, class-string<\Illuminate\Database\Eloquent\Model>>> $graph */
+        $graph = [];
+
+        foreach ($models as $modelClass) {
+            try {
+                $inspection = $this->schemaInspector->inspect($modelClass);
+
+                $nodes[$modelClass] = [
+                    'name' => class_basename($modelClass),
+                    'namespace' => $modelClass,
+                    'fillable' => $inspection['fillable'] ?? [],
+                    'inLoops' => false,
+                    'loopSeverity' => 0,
+                ];
+            } catch (\Throwable $e) {
+                $this->warnings[] = sprintf('Error inspecting model %s: ', $modelClass).$e->getMessage();
+                // Still add the node but with limited info
+                $nodes[$modelClass] = [
+                    'name' => class_basename($modelClass),
+                    'namespace' => $modelClass,
+                    'fillable' => [],
+                    'inLoops' => false,
+                    'loopSeverity' => 0,
+                ];
+            }
+
+            try {
+                $relationships = $this->relationshipResolver->resolve($modelClass);
+                foreach ($relationships as $rel) {
+                    /** @var class-string<\Illuminate\Database\Eloquent\Model> $targetClass */
+                    $targetClass = $rel['target'];
+
+                    /** @var string $type */
+                    $type = $rel['type'];
+
+                    $edges[] = [
+                        'source' => $modelClass,
+                        'target' => $targetClass,
+                        'type' => $type,
+                        'method' => $rel['method'],
+                        'metadata' => $rel['metadata'] ?? [],
+                        'direction' => $this->getDirection($type),
+                        'cardinality' => $this->getCardinality($type),
+                    ];
+
+                    $graph[$modelClass][] = $targetClass;
+                }
+            } catch (\Throwable $e) {
+                $this->warnings[] = sprintf('Error resolving relationships for %s: ', $modelClass).$e->getMessage();
+            }
+        }
 
         $nodes = [];
         $edges = [];
@@ -102,8 +162,65 @@ class GraphBuilderService
                 continue;
             }
 
-            if ($onProgress !== null) {
-                $onProgress($model);
+        /** @var int $maxDepth */
+        $maxDepth = Config::get('model-graph.relationships.max_depth', 5);
+
+        foreach (array_keys($graph) as $node) {
+            $this->dfs($node, $graph, [], 0, $maxDepth);
+        }
+    }
+
+    /**
+     * Depth-First Search to find cycles.
+     *
+     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $node
+     * @param  array<class-string<\Illuminate\Database\Eloquent\Model>, array<int, class-string<\Illuminate\Database\Eloquent\Model>>>  $graph
+     * @param  array<int, class-string<\Illuminate\Database\Eloquent\Model>>  $path
+     */
+    private function dfs(string $node, array $graph, array $path, int $depth, int $maxDepth): void
+    {
+        if ($depth > $maxDepth) {
+            return;
+        }
+
+        $this->recursionStack[$node] = true;
+        $path[] = $node;
+
+        if (isset($graph[$node])) {
+            foreach ($graph[$node] as $neighbor) {
+                if (isset($this->recursionStack[$neighbor])) {
+                    $loopStartIdx = array_search($neighbor, $path, true);
+                    if ($loopStartIdx !== false) {
+                        /** @var array<int, class-string<\Illuminate\Database\Eloquent\Model>> $loop */
+                        $loop = array_slice($path, (int) $loopStartIdx);
+                        $this->loops[] = $loop;
+                    }
+                } else {
+                    $this->dfs($neighbor, $graph, $path, $depth + 1, $maxDepth);
+                }
+            }
+        }
+
+        unset($this->recursionStack[$node]);
+    }
+
+    /**
+     * Filter loops to get only unique cycles.
+     *
+     * @return array<int, array<int, string>>
+     */
+    private function getUniqueLoops(): array
+    {
+        $unique = [];
+        $hashes = [];
+
+        foreach ($this->loops as $loop) {
+            $sorted = $loop;
+            sort($sorted);
+            $hash = implode('|', $sorted);
+            if (! in_array($hash, $hashes)) {
+                $hashes[] = $hash;
+                $unique[] = $loop;
             }
         }
 

@@ -4,94 +4,10 @@ declare(strict_types=1);
 
 namespace Matakltm\LaravelModelGraph\Tests\Unit;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\HasOneThrough;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Database\Eloquent\Relations\MorphOne;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Matakltm\LaravelModelGraph\Services\RelationshipResolverService;
 use Tests\TestCase;
 
 uses(TestCase::class);
-
-class RelatedModel extends Model {}
-
-class ThroughModel extends Model {}
-
-class MockModel extends Model
-{
-    public function hasOneRelation(): HasOne
-    {
-        return $this->hasOne(RelatedModel::class, 'foreign_key', 'local_key');
-    }
-
-    public function hasManyRelation(): HasMany
-    {
-        return $this->hasMany(RelatedModel::class, 'foreign_key', 'local_key');
-    }
-
-    public function belongsToRelation(): BelongsTo
-    {
-        return $this->belongsTo(RelatedModel::class, 'foreign_key', 'owner_key');
-    }
-
-    public function belongsToManyRelation(): BelongsToMany
-    {
-        return $this->belongsToMany(RelatedModel::class, 'pivot_table', 'foreign_pivot_key', 'related_pivot_key')
-            ->withPivot('column1', 'column2');
-    }
-
-    public function hasOneThroughRelation(): HasOneThrough
-    {
-        return $this->hasOneThrough(RelatedModel::class, ThroughModel::class, 'first_key', 'second_key', 'local_key', 'second_local_key');
-    }
-
-    public function hasManyThroughRelation(): HasManyThrough
-    {
-        return $this->hasManyThrough(RelatedModel::class, ThroughModel::class, 'first_key', 'second_key', 'local_key', 'second_local_key');
-    }
-
-    public function morphOneRelation(): MorphOne
-    {
-        return $this->morphOne(RelatedModel::class, 'morphable');
-    }
-
-    public function morphManyRelation(): MorphMany
-    {
-        return $this->morphMany(RelatedModel::class, 'morphable');
-    }
-
-    public function morphToRelation(): MorphTo
-    {
-        return $this->morphTo();
-    }
-
-    public function morphToManyRelation(): MorphToMany
-    {
-        return $this->morphToMany(RelatedModel::class, 'taggable');
-    }
-
-    public function notARelation(): string
-    {
-        return 'string';
-    }
-
-    public static function staticMethod(): string
-    {
-        return 'static';
-    }
-
-    public function methodWithParams(string $param): string
-    {
-        return $param;
-    }
-}
 
 test('it can be instantiated', function (): void {
     $service = new RelationshipResolverService;

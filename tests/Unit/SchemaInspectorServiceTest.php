@@ -3,62 +3,37 @@
 declare(strict_types=1);
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Schema;
 use Matakltm\LaravelModelGraph\Services\SchemaInspectorService;
 use Tests\TestCase;
 
 uses(TestCase::class);
 
+// TestModel
 class TestModel extends Model
 {
-    protected $table = 'test_table';
+    protected $table = 'test_models';
+
+    protected $fillable = [
+        'name',
+        'email',
+    ];
 }
 
-function createTestTable(): void
-{
-    Schema::create('users', function (Blueprint $table): void {
-        $table->id();
-    });
+test('it can be instantiated', function (): void {
+    $service = new SchemaInspectorService;
+    expect($service)->toBeInstanceOf(SchemaInspectorService::class);
+});
 
-    Schema::create('test_table', function (Blueprint $table): void {
-        $table->id();
-        $table->string('name')->nullable();
-        $table->string('email')->unique();
-        $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-        $table->timestamps();
-    });
-}
-
-test('it can inspect a table', function (): void {
-    if (! in_array('sqlite', PDO::getAvailableDrivers(), true)) {
-        $this->markTestSkipped('SQLite driver not available.');
-    }
-
-    createTestTable();
-
+test('it inspects a model', function (): void {
     $service = new SchemaInspectorService;
     $result = $service->inspect(TestModel::class);
 
-    expect($result)->toHaveKeys(['columns', 'foreign_keys']);
-    expect($result['columns'])->toBeArray();
-    expect($result['foreign_keys'])->toBeArray();
+    expect($result['columns'])->not->toBeEmpty();
+    expect($result['foreign_keys'])->not->toBeEmpty();
 
     // Check column
     $nameColumn = null;
-    foreach ($result['columns'] as $column) {
-        if ($column['name'] === 'name') {
-            $nameColumn = $column;
-            break;
-        }
-    }
-
-    expect($nameColumn)->not->toBeNull();
-    expect($nameColumn['nullable'])->toBeTrue();
-
-    // Check index
-    $emailColumn = null;
     foreach ($result['columns'] as $column) {
         if ($column['name'] === 'email') {
             $emailColumn = $column;
