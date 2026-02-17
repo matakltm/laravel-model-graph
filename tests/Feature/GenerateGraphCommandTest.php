@@ -36,7 +36,7 @@ test('command can be called and generates file', function (): void {
 });
 
 test('command respects dry-run option', function (): void {
-    $this->artisan('model-graph:generate --dry-run')
+    $this->artisan('model-graph:generate', ['--dry-run' => true])
         ->expectsOutput('Generating model graph...')
         ->expectsOutput('Dry run: Graph data generated but not saved.')
         ->assertExitCode(0);
@@ -45,7 +45,7 @@ test('command respects dry-run option', function (): void {
 });
 
 test('command respects pretty option', function (): void {
-    $this->artisan('model-graph:generate --pretty --dry-run')
+    $this->artisan('model-graph:generate', ['--pretty' => true, '--dry-run' => true])
         ->expectsOutput('Generating model graph...')
         ->assertExitCode(0);
 });
@@ -64,7 +64,7 @@ test('command asks for confirmation if file exists and force is not set', functi
 test('command overwrites file if force is set', function (): void {
     File::put($this->exportPath, 'old content');
 
-    $this->artisan('model-graph:generate --force')
+    $this->artisan('model-graph:generate', ['--force' => true])
         ->expectsOutput('Generating model graph...')
         ->assertExitCode(0);
 
@@ -77,7 +77,7 @@ test('command respects output option', function (): void {
         File::delete($customPath);
     }
 
-    $this->artisan('model-graph:generate --output='.$customPath)
+    $this->artisan('model-graph:generate', ['--output' => $customPath])
         ->expectsOutput('Generating model graph...')
         ->expectsOutput('Model graph successfully generated and saved to: '.$customPath)
         ->assertExitCode(0);
