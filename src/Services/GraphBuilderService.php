@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace Matakltm\LaravelModelGraph\Services;
 
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\App;
+use ReflectionClass;
+use Throwable;
+
 /**
  * Class GraphBuilderService
  *
@@ -42,20 +48,74 @@ class GraphBuilderService
     {
         $models ??= $this->getModels();
 
-        $graph = [
-            'models' => [],
-            'relationships' => [],
-        ];
+        $nodes = [];
+        $edges = [];
 
         foreach ($models as $model) {
-            $graph['models'][] = $this->inspector->inspect($model);
-            $graph['relationships'] = array_merge($graph['relationships'], $this->resolver->resolve($model));
+            /** @var class-string<Model> $model */
+            if (! class_exists($model)) {
+                continue;
+            }
+
+            try {
+                $reflection = new ReflectionClass($model);
+
+                if (! $reflection->isSubclassOf(Model::class)) {
+                    continue;
+                }
+
+                /** @var Model $instance */
+                $instance = new $model;
+
+                $modelData = $this->inspector->inspect($model);
+                /** @var array<string, array<string, mixed>> $relationships */
+                $relationships = $this->resolver->resolve($model);
+
+                $nodes[] = [
+                    'id' => $model,
+                    'name' => $reflection->getShortName(),
+                    'table' => $instance->getTable(),
+                    'columns' => $modelData['columns'] ?? [],
+                    'relationships_count' => count($relationships),
+                ];
+
+                foreach ($relationships as $relName => $relData) {
+                    /** @var class-string $relatedModel */
+                    $relatedModel = $relData['related'];
+
+                    if (! class_exists($relatedModel)) {
+                        continue;
+                    }
+
+                    $relatedReflection = new ReflectionClass($relatedModel);
+
+                    $edges[] = [
+                        'id' => strtolower($reflection->getShortName().'_'.$relName.'_'.$relatedReflection->getShortName()),
+                        'source' => $model,
+                        'target' => $relatedModel,
+                        'type' => $relData['type'],
+                        'label' => $relName,
+                        'metadata' => $relData,
+                    ];
+                }
+            } catch (Throwable) {
+                continue;
+            }
 
             if ($onProgress !== null) {
                 $onProgress($model);
             }
         }
 
-        return $graph;
+        return [
+            'meta' => [
+                'generated_at' => Carbon::now()->toIso8601String(),
+                'environment' => App::environment(),
+                'model_count' => count($nodes),
+                'relationship_count' => count($edges),
+            ],
+            'nodes' => $nodes,
+            'edges' => $edges,
+        ];
     }
 }
