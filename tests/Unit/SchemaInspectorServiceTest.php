@@ -1,13 +1,77 @@
 <?php
 
+declare(strict_types=1);
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Config;
 use Matakltm\LaravelModelGraph\Services\SchemaInspectorService;
+use Tests\TestCase;
+
+uses(TestCase::class);
+
+// TestModel
+class TestModel extends Model
+{
+    protected $table = 'test_models';
+
+    protected $fillable = [
+        'name',
+        'email',
+    ];
+}
 
 test('it can be instantiated', function (): void {
     $service = new SchemaInspectorService;
     expect($service)->toBeInstanceOf(SchemaInspectorService::class);
 });
 
-test('inspect method returns an array', function (): void {
+test('it inspects a model', function (): void {
     $service = new SchemaInspectorService;
-    expect($service->inspect('App\Models\User'))->toBeArray();
+    $result = $service->inspect(TestModel::class);
+
+    expect($result['columns'])->not->toBeEmpty();
+    expect($result['foreign_keys'])->not->toBeEmpty();
+
+    // Check column
+    $nameColumn = null;
+    foreach ($result['columns'] as $column) {
+        if ($column['name'] === 'email') {
+            $emailColumn = $column;
+            break;
+        }
+    }
+
+    expect($emailColumn['indexes'])->not->toBeEmpty();
+    expect($emailColumn['indexes'][0]['unique'] ?? $emailColumn['indexes'][0]['type'] === 'unique')->toBeTruthy();
+
+    // Check foreign key
+    expect($result['foreign_keys'])->not->toBeEmpty();
+    expect($result['foreign_keys'][0]['foreign_table'])->toBe('users');
+    expect($result['foreign_keys'][0]['on_delete'])->toBe('cascade');
+});
+
+test('it returns empty if use_schema_inspection is disabled', function (): void {
+    Config::set('model-graph.scan.use_schema_inspection', false);
+    $service = new SchemaInspectorService;
+    $result = $service->inspect(TestModel::class);
+
+    expect($result['columns'])->toBeEmpty();
+    expect($result['foreign_keys'])->toBeEmpty();
+});
+
+test('it returns empty if fake_schema is enabled', function (): void {
+    Config::set('model-graph.scan.fake_schema', true);
+    $service = new SchemaInspectorService;
+    $result = $service->inspect(TestModel::class);
+
+    expect($result['columns'])->toBeEmpty();
+    expect($result['foreign_keys'])->toBeEmpty();
+});
+
+test('it returns empty if table does not exist', function (): void {
+    $service = new SchemaInspectorService;
+    $result = $service->inspect('NonExistentModelClass');
+
+    expect($result['columns'])->toBeEmpty();
+    expect($result['foreign_keys'])->toBeEmpty();
 });
