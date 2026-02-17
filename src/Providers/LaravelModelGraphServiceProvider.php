@@ -48,8 +48,10 @@ class LaravelModelGraphServiceProvider extends ServiceProvider
             ]);
         }
 
-        $this->loadRoutesFrom(__DIR__.'/../../routes/web.php');
-        $this->loadRoutesFrom(__DIR__.'/../../routes/api.php');
+        if (config('model-graph.spa_enabled', true)) {
+            $this->loadRoutesFrom(__DIR__.'/../../routes/web.php');
+            $this->loadRoutesFrom(__DIR__.'/../../routes/api.php');
+        }
 
         $this->loadViewsFrom(__DIR__.'/../../resources/views', 'model-graph');
     }

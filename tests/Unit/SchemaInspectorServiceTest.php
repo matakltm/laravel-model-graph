@@ -11,6 +11,30 @@ use Tests\TestCase;
 
 uses(TestCase::class);
 
+class TestModel extends Model
+{
+    protected $table = 'test_models';
+}
+
+test('it inspects model correctly', function (): void {
+    Schema::create('test_models', function (Blueprint $table) {
+        $table->id();
+        $table->string('name')->nullable();
+        $table->string('email')->unique();
+        $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+    });
+
+    $service = new SchemaInspectorService;
+    $result = $service->inspect(TestModel::class);
+
+    $nameColumn = null;
+    foreach ($result['columns'] as $column) {
+        if ($column['name'] === 'name') {
+            $nameColumn = $column;
+            break;
+        }
+    }
+
     expect($nameColumn)->not->toBeNull();
     expect($nameColumn['nullable'])->toBeTrue();
 
@@ -24,7 +48,7 @@ uses(TestCase::class);
     }
 
     expect($emailColumn['indexes'])->not->toBeEmpty();
-    expect($emailColumn['indexes'][0]['unique'] ?? $emailColumn['indexes'][0]['type'] === 'unique')->toBeTruthy();
+    expect($emailColumn['indexes'][0]['unique'] ?? ($emailColumn['indexes'][0]['type'] === 'unique'))->toBeTruthy();
 
     // Check foreign key
     expect($result['foreign_keys'])->not->toBeEmpty();

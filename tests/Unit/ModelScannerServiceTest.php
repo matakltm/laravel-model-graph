@@ -10,6 +10,9 @@ use Tests\TestCase;
 
 uses(TestCase::class);
 
+test('it respects exclude filter', function (): void {
+    Config::set('model-graph.scan.exclude', ['Tests\\tmp\\Models\\Post']);
+
     $service = new ModelScannerService;
     $models = $service->scan();
 

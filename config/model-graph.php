@@ -65,13 +65,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Storage Path
+    | Export Path
     |--------------------------------------------------------------------------
     |
-    | The path where the generated graph JSON file will be stored.
+    | The path where the generated graph JSON file will be exported.
     |
     */
-    'storage_path' => env('MODEL_GRAPH_STORAGE_PATH', storage_path('app/laravel-model-graph.json')),
+    'export_path' => env('MODEL_GRAPH_EXPORT_PATH', storage_path('app/laravel-model-graph.json')),
+
+    /*
+    |--------------------------------------------------------------------------
+    | SPA Routes Enabled
+    |--------------------------------------------------------------------------
+    |
+    | This option controls whether the SPA routes (web and API) are registered.
+    |
+    */
+    'spa_enabled' => env('MODEL_GRAPH_SPA_ENABLED', true),
 
     /*
     |--------------------------------------------------------------------------

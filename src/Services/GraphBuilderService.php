@@ -6,6 +6,7 @@ namespace Matakltm\LaravelModelGraph\Services;
 
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
+use Matakltm\LaravelModelGraph\Events\ModelGraphGenerated;
 
 /**
  * Class GraphBuilderService
@@ -24,19 +25,13 @@ class GraphBuilderService
     /** @var array<int, string> */
     private array $warnings = [];
 
-    public function __construct(
-        protected ModelScannerService $modelScanner,
-        protected RelationshipResolverService $relationshipResolver,
-        protected SchemaInspectorService $schemaInspector
-    ) {}
-
     /**
      * GraphBuilderService constructor.
      */
     public function __construct(
-        protected ModelScannerService $scanner,
-        protected RelationshipResolverService $resolver,
-        protected SchemaInspectorService $inspector
+        protected ModelScannerService $modelScanner,
+        protected RelationshipResolverService $relationshipResolver,
+        protected SchemaInspectorService $schemaInspector
     ) {}
 
     /**
@@ -46,7 +41,7 @@ class GraphBuilderService
      */
     public function getModels(): array
     {
-        return $this->scanner->scan();
+        return $this->modelScanner->scan();
     }
 
     /**
@@ -59,12 +54,16 @@ class GraphBuilderService
     public function generate(?array $models = null, ?callable $onProgress = null): array
     {
         $this->warnings = [];
-        $models = $this->modelScanner->scan();
+        $models ??= $this->modelScanner->scan();
         $nodes = [];
         $edges = [];
         $graph = [];
 
         foreach ($models as $modelClass) {
+            if ($onProgress) {
+                $onProgress($modelClass);
+            }
+
             try {
                 $inspection = $this->schemaInspector->inspect($modelClass);
 
@@ -129,7 +128,7 @@ class GraphBuilderService
         /** @var int $jsonOptions */
         $jsonOptions = Config::get('model-graph.json_options', JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
-        return [
+        $data = [
             'version' => '1.0.0',
             'timestamp' => Carbon::now()->toIso8601String(),
             'totalModels' => count($nodes),
@@ -142,6 +141,10 @@ class GraphBuilderService
             'relationships' => $edges,
             'loops' => $uniqueLoops,
         ];
+
+        event(new ModelGraphGenerated($data));
+
+        return $data;
     }
 
     /**
