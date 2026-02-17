@@ -53,6 +53,7 @@ class GraphBuilderService
         $models ??= $this->modelScanner->scan();
         $nodes = [];
         $edges = [];
+        /** @var array<class-string<\Illuminate\Database\Eloquent\Model>, array<int, class-string<\Illuminate\Database\Eloquent\Model>>> $graph */
         $graph = [];
 
         foreach ($models as $modelClass) {
@@ -81,7 +82,7 @@ class GraphBuilderService
             try {
                 $relationships = $this->relationshipResolver->resolve($modelClass);
                 foreach ($relationships as $rel) {
-                    /** @var string $targetClass */
+                    /** @var class-string<\Illuminate\Database\Eloquent\Model> $targetClass */
                     $targetClass = $rel['target'];
 
                     /** @var string $type */
@@ -174,7 +175,7 @@ class GraphBuilderService
                 if (isset($this->recursionStack[$neighbor])) {
                     $loopStartIdx = array_search($neighbor, $path, true);
                     if ($loopStartIdx !== false) {
-                        /** @var array<int, string> $loop */
+                        /** @var array<int, class-string<\Illuminate\Database\Eloquent\Model>> $loop */
                         $loop = array_slice($path, (int) $loopStartIdx);
                         $this->loops[] = $loop;
                     }
