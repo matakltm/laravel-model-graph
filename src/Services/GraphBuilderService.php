@@ -15,10 +15,10 @@ use Illuminate\Support\Facades\Config;
  */
 class GraphBuilderService
 {
-    /** @var array<string, bool> */
+    /** @var array<class-string<\Illuminate\Database\Eloquent\Model>, bool> */
     private array $recursionStack = [];
 
-    /** @var array<int, array<int, string>> */
+    /** @var array<int, array<int, class-string<\Illuminate\Database\Eloquent\Model>>> */
     private array $loops = [];
 
     /** @var array<int, string> */
@@ -31,35 +31,26 @@ class GraphBuilderService
     ) {}
 
     /**
-     * GraphBuilderService constructor.
-     */
-    public function __construct(
-        protected ModelScannerService $scanner,
-        protected RelationshipResolverService $resolver,
-        protected SchemaInspectorService $inspector
-    ) {}
-
-    /**
      * Get the list of models from the scanner.
      *
-     * @return array<int, string>
+     * @return array<int, class-string<\Illuminate\Database\Eloquent\Model>>
      */
     public function getModels(): array
     {
-        return $this->scanner->scan();
+        return $this->modelScanner->scan();
     }
 
     /**
      * Generate the model graph data.
      *
-     * @param  array<int, string>|null  $models
+     * @param  array<int, class-string<\Illuminate\Database\Eloquent\Model>>|null  $models
      * @param  (callable(string): void)|null  $onProgress
      * @return array<string, mixed>
      */
     public function generate(?array $models = null, ?callable $onProgress = null): array
     {
         $this->warnings = [];
-        $models = $this->modelScanner->scan();
+        $models ??= $this->modelScanner->scan();
         $nodes = [];
         $edges = [];
         $graph = [];
@@ -76,7 +67,7 @@ class GraphBuilderService
                     'loopSeverity' => 0,
                 ];
             } catch (\Throwable $e) {
-                $this->warnings[] = "Error inspecting model {$modelClass}: ".$e->getMessage();
+                $this->warnings[] = sprintf('Error inspecting model %s: ', $modelClass).$e->getMessage();
                 // Still add the node but with limited info
                 $nodes[$modelClass] = [
                     'name' => class_basename($modelClass),
@@ -109,7 +100,7 @@ class GraphBuilderService
                     $graph[$modelClass][] = $targetClass;
                 }
             } catch (\Throwable $e) {
-                $this->warnings[] = "Error resolving relationships for {$modelClass}: ".$e->getMessage();
+                $this->warnings[] = sprintf('Error resolving relationships for %s: ', $modelClass).$e->getMessage();
             }
         }
 
@@ -147,7 +138,7 @@ class GraphBuilderService
     /**
      * Detect loops in the graph using DFS.
      *
-     * @param  array<string, array<int, string>>  $graph
+     * @param  array<class-string<\Illuminate\Database\Eloquent\Model>, array<int, class-string<\Illuminate\Database\Eloquent\Model>>>  $graph
      */
     private function detectLoops(array $graph): void
     {
@@ -165,8 +156,9 @@ class GraphBuilderService
     /**
      * Depth-First Search to find cycles.
      *
-     * @param  array<string, array<int, string>>  $graph
-     * @param  array<int, string>  $path
+     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $node
+     * @param  array<class-string<\Illuminate\Database\Eloquent\Model>, array<int, class-string<\Illuminate\Database\Eloquent\Model>>>  $graph
+     * @param  array<int, class-string<\Illuminate\Database\Eloquent\Model>>  $path
      */
     private function dfs(string $node, array $graph, array $path, int $depth, int $maxDepth): void
     {
@@ -180,7 +172,7 @@ class GraphBuilderService
         if (isset($graph[$node])) {
             foreach ($graph[$node] as $neighbor) {
                 if (isset($this->recursionStack[$neighbor])) {
-                    $loopStartIdx = array_search($neighbor, $path);
+                    $loopStartIdx = array_search($neighbor, $path, true);
                     if ($loopStartIdx !== false) {
                         /** @var array<int, string> $loop */
                         $loop = array_slice($path, (int) $loopStartIdx);

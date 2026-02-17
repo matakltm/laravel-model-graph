@@ -18,7 +18,7 @@ class ModelScannerService
     /**
      * Scan the configured path for models.
      *
-     * @return array<int, string>
+     * @return array<int, class-string<Model>>
      */
     public function scan(): array
     {

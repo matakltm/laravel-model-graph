@@ -20,13 +20,9 @@ class RelationshipResolverService
     private array $modelInstances = [];
 
     /**
-     * @var array<string, array<string, mixed>>
-     */
-    private array $cache = [];
-
-    /**
      * Resolve relationships for a given model.
      *
+     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $model
      * @return array<int, array<string, mixed>>
      */
     public function resolve(string $model): array
@@ -46,8 +42,11 @@ class RelationshipResolverService
 
             // Skip methods from base Model class and other common traits/classes if needed
             $declaringClass = $method->getDeclaringClass()->getName();
-            if ($declaringClass === \Illuminate\Database\Eloquent\Model::class ||
-                str_starts_with($declaringClass, 'Illuminate\\')) {
+            if ($declaringClass === \Illuminate\Database\Eloquent\Model::class) {
+                continue;
+            }
+
+            if (str_starts_with($declaringClass, 'Illuminate\\')) {
                 continue;
             }
 
@@ -80,6 +79,8 @@ class RelationshipResolverService
 
     /**
      * Get a cached instance of the model.
+     *
+     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $model
      */
     private function getModelInstance(string $model): \Illuminate\Database\Eloquent\Model
     {
@@ -95,6 +96,7 @@ class RelationshipResolverService
     /**
      * Extract relationship data.
      *
+     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $model
      * @return array<string, mixed>
      */
     private function extractRelationshipData(string $model, ReflectionMethod $method): array
@@ -106,8 +108,8 @@ class RelationshipResolverService
 
         return [
             'method' => $method->getName(),
-            'type' => (new ReflectionClass($relation))->getShortName(),
-            'target' => get_class($relation->getRelated()),
+            'type' => new ReflectionClass($relation)->getShortName(),
+            'target' => $relation->getRelated()::class,
             'metadata' => [
                 'foreign_key' => $this->getForeignKey($relation),
                 'owner_key' => $this->getOwnerKey($relation),
@@ -145,6 +147,7 @@ class RelationshipResolverService
 
             return $key;
         }
+
         if (method_exists($relation, 'getLocalKeyName')) {
             /** @var string $key */
             $key = $relation->getLocalKeyName();

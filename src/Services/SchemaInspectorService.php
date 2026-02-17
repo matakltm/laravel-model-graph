@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Matakltm\LaravelModelGraph\Services;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Schema;
 
 /**

@@ -10,6 +10,12 @@ use Tests\TestCase;
 
 uses(TestCase::class);
 
+test('it can be instantiated', function (): void {
+    $service = new ModelScannerService;
+    expect($service)->toBeInstanceOf(ModelScannerService::class);
+});
+
+test('it scans models', function (): void {
     $service = new ModelScannerService;
     $models = $service->scan();
 
