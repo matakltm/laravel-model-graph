@@ -17,10 +17,10 @@ use Matakltm\LaravelModelGraph\Events\ModelGraphGenerated;
  */
 class GraphBuilderService
 {
-    /** @var array<string, bool> */
+    /** @var array<class-string<\Illuminate\Database\Eloquent\Model>, bool> */
     private array $recursionStack = [];
 
-    /** @var array<int, array<int, string>> */
+    /** @var array<int, array<int, class-string<\Illuminate\Database\Eloquent\Model>>> */
     private array $loops = [];
 
     /** @var array<int, string> */
@@ -58,6 +58,7 @@ class GraphBuilderService
         $models ??= $this->modelScanner->scan();
         $nodes = [];
         $edges = [];
+        /** @var array<class-string<\Illuminate\Database\Eloquent\Model>, array<int, class-string<\Illuminate\Database\Eloquent\Model>>> $graph */
         $graph = [];
 
         foreach ($models as $modelClass) {
@@ -76,7 +77,7 @@ class GraphBuilderService
                     'loopSeverity' => 0,
                 ];
             } catch (\Throwable $e) {
-                $this->warnings[] = "Error inspecting model {$modelClass}: ".$e->getMessage();
+                $this->warnings[] = sprintf('Error inspecting model %s: ', $modelClass).$e->getMessage();
                 // Still add the node but with limited info
                 $nodes[$modelClass] = [
                     'name' => class_basename($modelClass),
@@ -111,25 +112,28 @@ class GraphBuilderService
                     }
                 }
             } catch (\Throwable $e) {
-                $this->warnings[] = "Error resolving relationships for {$modelClass}: ".$e->getMessage();
+                $this->warnings[] = sprintf('Error resolving relationships for %s: ', $modelClass).$e->getMessage();
             }
         }
 
-        $this->detectLoops($graph);
+        $nodes = [];
+        $edges = [];
 
-        $uniqueLoops = $this->getUniqueLoops();
+        foreach ($models as $model) {
+            /** @var class-string<Model> $model */
+            if (! class_exists($model)) {
+                continue;
+            }
 
-        foreach ($uniqueLoops as $loop) {
-            foreach ($loop as $nodeClass) {
-                if (isset($nodes[$nodeClass])) {
-                    $nodes[$nodeClass]['inLoops'] = true;
-                    $nodes[$nodeClass]['loopSeverity']++;
+            try {
+                $reflection = new ReflectionClass($model);
+
+                if (! $reflection->isSubclassOf(Model::class)) {
+                    continue;
                 }
-            }
-        }
 
-        /** @var int $jsonOptions */
-        $jsonOptions = Config::get('model-graph.json_options', JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+                /** @var Model $instance */
+                $instance = new $model;
 
         $data = [
             'version' => '1.0.0',
@@ -150,15 +154,36 @@ class GraphBuilderService
         return $data;
     }
 
-    /**
-     * Detect loops in the graph using DFS.
-     *
-     * @param  array<string, array<int, string>>  $graph
-     */
-    private function detectLoops(array $graph): void
-    {
-        $this->recursionStack = [];
-        $this->loops = [];
+                $nodes[] = [
+                    'id' => $model,
+                    'name' => $reflection->getShortName(),
+                    'table' => $instance->getTable(),
+                    'columns' => $modelData['columns'] ?? [],
+                    'relationships_count' => count($relationships),
+                ];
+
+                foreach ($relationships as $relName => $relData) {
+                    /** @var class-string $relatedModel */
+                    $relatedModel = $relData['related'];
+
+                    if (! class_exists($relatedModel)) {
+                        continue;
+                    }
+
+                    $relatedReflection = new ReflectionClass($relatedModel);
+
+                    $edges[] = [
+                        'id' => strtolower($reflection->getShortName().'_'.$relName.'_'.$relatedReflection->getShortName()),
+                        'source' => $model,
+                        'target' => $relatedModel,
+                        'type' => $relData['type'],
+                        'label' => $relName,
+                        'metadata' => $relData,
+                    ];
+                }
+            } catch (Throwable) {
+                continue;
+            }
 
         /** @var int $maxDepth */
         $maxDepth = Config::get('model-graph.relationships.max_depth', 5);
@@ -171,8 +196,9 @@ class GraphBuilderService
     /**
      * Depth-First Search to find cycles.
      *
-     * @param  array<string, array<int, string>>  $graph
-     * @param  array<int, string>  $path
+     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $node
+     * @param  array<class-string<\Illuminate\Database\Eloquent\Model>, array<int, class-string<\Illuminate\Database\Eloquent\Model>>>  $graph
+     * @param  array<int, class-string<\Illuminate\Database\Eloquent\Model>>  $path
      */
     private function dfs(string $node, array $graph, array $path, int $depth, int $maxDepth): void
     {
@@ -186,9 +212,9 @@ class GraphBuilderService
         if (isset($graph[$node])) {
             foreach ($graph[$node] as $neighbor) {
                 if (isset($this->recursionStack[$neighbor])) {
-                    $loopStartIdx = array_search($neighbor, $path);
+                    $loopStartIdx = array_search($neighbor, $path, true);
                     if ($loopStartIdx !== false) {
-                        /** @var array<int, string> $loop */
+                        /** @var array<int, class-string<\Illuminate\Database\Eloquent\Model>> $loop */
                         $loop = array_slice($path, (int) $loopStartIdx);
                         $this->loops[] = $loop;
                     }
@@ -221,31 +247,15 @@ class GraphBuilderService
             }
         }
 
-        return $unique;
-    }
-
-    /**
-     * Get the direction of the relationship.
-     */
-    private function getDirection(string $type): string
-    {
-        return match ($type) {
-            'BelongsTo', 'BelongsToMany', 'MorphTo', 'MorphedByMany' => 'incoming',
-            default => 'outgoing',
-        };
-    }
-
-    /**
-     * Get the cardinality of the relationship.
-     */
-    private function getCardinality(string $type): string
-    {
-        return match ($type) {
-            'HasOne', 'MorphOne', 'HasOneThrough' => 'one-to-one',
-            'HasMany', 'MorphMany', 'HasManyThrough' => 'one-to-many',
-            'BelongsTo', 'MorphTo' => 'many-to-one',
-            'BelongsToMany', 'MorphToMany', 'MorphedByMany' => 'many-to-many',
-            default => 'unknown',
-        };
+        return [
+            'meta' => [
+                'generated_at' => Carbon::now()->toIso8601String(),
+                'environment' => App::environment(),
+                'model_count' => count($nodes),
+                'relationship_count' => count($edges),
+            ],
+            'nodes' => $nodes,
+            'edges' => $edges,
+        ];
     }
 }

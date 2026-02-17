@@ -164,6 +164,7 @@ class RelationshipResolverService
 
             return $key;
         }
+
         if (method_exists($relation, 'getLocalKeyName')) {
             /** @var string $key */
             $key = $relation->getLocalKeyName();

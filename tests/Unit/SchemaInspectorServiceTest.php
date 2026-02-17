@@ -3,9 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Schema;
 use Matakltm\LaravelModelGraph\Services\SchemaInspectorService;
 use Tests\TestCase;
 
@@ -38,8 +36,26 @@ test('it inspects model correctly', function (): void {
     expect($nameColumn)->not->toBeNull();
     expect($nameColumn['nullable'])->toBeTrue();
 
-    // Check index
-    $emailColumn = null;
+    protected $fillable = [
+        'name',
+        'email',
+    ];
+}
+
+test('it can be instantiated', function (): void {
+    $service = new SchemaInspectorService;
+    expect($service)->toBeInstanceOf(SchemaInspectorService::class);
+});
+
+test('it inspects a model', function (): void {
+    $service = new SchemaInspectorService;
+    $result = $service->inspect(TestModel::class);
+
+    expect($result['columns'])->not->toBeEmpty();
+    expect($result['foreign_keys'])->not->toBeEmpty();
+
+    // Check column
+    $nameColumn = null;
     foreach ($result['columns'] as $column) {
         if ($column['name'] === 'email') {
             $emailColumn = $column;
